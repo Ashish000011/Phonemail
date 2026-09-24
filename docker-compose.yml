@@ -1,0 +1,200 @@
+# PhoneMail: `docker compose up -d` brings up everything, with no .env needed.
+# Every setting has a safe demo default (${VAR:-default}); see .env.example.
+#
+#   http://localhost:8080   the app (mobile /m, web /mail, /register, /demo)
+#   http://localhost:8025   Mailpit (catches mail sent to outside addresses)
+#   localhost:2525          PhoneMail's SMTP server
+#
+# `docker compose --profile public up -d` also starts a Cloudflare quick tunnel
+# for a public HTTPS URL (phones, Twilio and SMSGate webhooks).
+
+name: phonemail
+
+# Settings shared by api, smtp, worker and migrate. Empty values fall back to
+# the defaults in apps/server/src/config/env.ts.
+x-server-env: &server-env
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATA_DIR: /data
+  MAIL_DOMAIN: ${MAIL_DOMAIN:-phonemail.com}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+  DEMO_MODE: ${DEMO_MODE:-true}
+  AUTH_MODE: ${AUTH_MODE:-otp}
+  DEFAULT_COUNTRY: ${DEFAULT_COUNTRY:-IN}
+  JWT_SECRET: ${JWT_SECRET:-}
+  OTP_PEPPER: ${OTP_PEPPER:-}
+  INTERNAL_SMTP_SECRET: ${INTERNAL_SMTP_SECRET:-}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-phonemail}:${POSTGRES_PASSWORD:-phonemail}@postgres:5432/${POSTGRES_DB:-phonemail}
+  REDIS_URL: redis://redis:6379
+  SMS_PROVIDERS: ${SMS_PROVIDERS:-smsgate,twilio,console}
+  OTP_PROVIDER: ${OTP_PROVIDER:-auto}
+  SMS_NOTIFY_COOLDOWN_SECONDS: ${SMS_NOTIFY_COOLDOWN_SECONDS:-0}
+  TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+  TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+  TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+  TWILIO_TRIAL: ${TWILIO_TRIAL:-true}
+  TWILIO_SMS_TEMPLATE: ${TWILIO_SMS_TEMPLATE:-sms_account_alerts}
+  TWILIO_VERIFY_SERVICE_SID: ${TWILIO_VERIFY_SERVICE_SID:-}
+  TWILIO_VOICE: ${TWILIO_VOICE:-Polly.Aditi}
+  SMSGATE_API_URL: ${SMSGATE_API_URL:-https://api.sms-gate.app/3rdparty/v1}
+  SMSGATE_USERNAME: ${SMSGATE_USERNAME:-}
+  SMSGATE_PASSWORD: ${SMSGATE_PASSWORD:-}
+  SMSGATE_WEBHOOK_SECRET: ${SMSGATE_WEBHOOK_SECRET:-}
+  SMSGATE_SIGNUP_KEYWORD: ${SMSGATE_SIGNUP_KEYWORD:-JOIN}
+  SMTP_RELAY_HOST: ${SMTP_RELAY_HOST:-mailpit}
+  SMTP_RELAY_PORT: ${SMTP_RELAY_PORT:-1025}
+  SMTP_RELAY_USER: ${SMTP_RELAY_USER:-}
+  SMTP_RELAY_PASS: ${SMTP_RELAY_PASS:-}
+
+# api, smtp, worker and migrate run the same image with different commands.
+x-server: &server
+  image: phonemail-server:local
+  build:
+    context: .
+    dockerfile: apps/server/Dockerfile
+  environment: *server-env
+  volumes:
+    - maildata:/data
+  restart: unless-stopped
+
+x-after-migrate: &after-migrate
+  migrate:
+    condition: service_completed_successfully
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-phonemail}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phonemail}
+      POSTGRES_DB: ${POSTGRES_DB:-phonemail}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 'true'
+      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+      MP_MAX_MESSAGES: '5000'
+    ports:
+      - '8025:8025'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # One-shot: apply migrations, then seed demo data. api, smtp and worker wait for it.
+  migrate:
+    <<: *server
+    command: ['node', 'dist/entry/migrate-and-seed.js']
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api:
+    <<: *server
+    command: ['node', 'dist/entry/api.js']
+    depends_on: *after-migrate
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  smtp:
+    <<: *server
+    command: ['node', 'dist/entry/smtp.js']
+    ports:
+      - '2525:2525'
+    depends_on: *after-migrate
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const s = require('net').connect(2525, '127.0.0.1'); s.once('data', d => process.exit(String(d).startsWith('220') ? 0 : 1)); s.once('error', () => process.exit(1)); setTimeout(() => process.exit(1), 4000)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    <<: *server
+    command: ['node', 'dist/entry/worker.js']
+    depends_on: *after-migrate
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const s = require('fs').statSync('/tmp/phonemail-worker-heartbeat'); process.exit(Date.now() - s.mtimeMs < 30000 ? 0 : 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  web:
+    image: phonemail-web:local
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '8080:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Public HTTPS URL for phones and webhooks. The URL is printed in its logs:
+  #   docker compose logs cloudflared | grep trycloudflare.com
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: ['tunnel', '--no-autoupdate', '--url', 'http://web:8080']
+    profiles: ['public']
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  maildata:

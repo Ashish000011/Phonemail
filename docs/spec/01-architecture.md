@@ -3,7 +3,7 @@
 ## Containers (docker compose)
 | Service | Build / image | Role | Ports |
 |---|---|---|---|
-| web | apps/web → nginx | Serves the SPA; proxies /api, /socket.io, /webhooks to api | 8080 → 80 |
+| web | apps/web → nginx (unprivileged) | Serves the SPA; proxies /api, /socket.io, /webhooks to api | 8080 → 8080 |
 | api | apps/server `node dist/entry/api.js` | REST API, Socket.IO, Twilio and SMSGate webhooks, OpenAPI docs | internal 3000 |
 | smtp | apps/server `node dist/entry/smtp.js` | SMTP server for @MAIL_DOMAIN: inbound mail + authenticated submission | 2525 → 2525 |
 | worker | apps/server `node dist/entry/worker.js` | BullMQ jobs: SMS notifications, outbound relay, signup replies, cleanup | none |
@@ -124,7 +124,7 @@ All have safe demo defaults; compose uses `${VAR:-default}` so no `.env` is need
 | SMSGATE_API_URL | https://api.sms-gate.app/3rdparty/v1 | SMSGate cloud mode |
 | SMSGATE_USERNAME, SMSGATE_PASSWORD | empty | shown in the SMSGate app |
 | SMSGATE_WEBHOOK_SECRET | dev value | secret path segment for the inbound SMS webhook |
-| SMSGATE_SIGNUP_KEYWORD | JOIN | SMSGate inbound texts must start with this to sign up (personal phone); empty = any text |
+| SMSGATE_SIGNUP_KEYWORD | JOIN | SMSGate inbound texts must start with this to sign up (personal phone); `*` = any text |
 | SMTP_RELAY_HOST, SMTP_RELAY_PORT, SMTP_RELAY_USER, SMTP_RELAY_PASS | mailpit, 1025 | outbound relay for external domains |
 | SMS_NOTIFY_COOLDOWN_SECONDS | 0 | optional per-sender throttle |
 
@@ -144,7 +144,7 @@ custom text, the resolved OTP path, the resolved AUTH_MODE, and demo mode.
 - `.gitattributes` forces LF line endings so shell scripts work when the repo
   is cloned on Windows.
 - `docker compose --profile public up -d` also starts cloudflared in
-  quick-tunnel mode (`tunnel --url http://web:80`); its logs print a
+  quick-tunnel mode (`tunnel --url http://web:8080`); its logs print a
   `https://….trycloudflare.com` URL for PUBLIC_BASE_URL, Twilio and SMSGate.
 
 ## Observability

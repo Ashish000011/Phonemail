@@ -1,0 +1,216 @@
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
+import { demoSmsSchema, demoUserSchema, type DemoSms, type DemoUser } from '@phonemail/shared';
+import { api } from '../shared/api';
+import { DemoCodeBanner } from '../shared/DemoCodeBanner';
+import { LanguageSelect } from '../shared/LanguageSelect';
+import { Logo } from '../shared/Logo';
+import { formatPhone } from '../shared/phone';
+import { useConfig } from '../shared/useConfig';
+import { useDocumentTitle } from '../shared/useDocumentTitle';
+
+/**
+ * The judges' toolbox (docs/spec/06, "Demo console"): every SMS and code the
+ * app "sent", and every account with its SMS-alert status. v1 polls every
+ * couple of seconds; Phase 3 switches it to live Socket.IO updates.
+ */
+export function DemoConsole() {
+  const { t } = useTranslation();
+  const config = useConfig();
+  useDocumentTitle(t('routes.demo'));
+  const demoMode = config.data?.demoMode === true;
+
+  const sms = useQuery({
+    queryKey: ['demo', 'sms'],
+    queryFn: () => api('/demo/sms?limit=50', { schema: z.array(demoSmsSchema) }),
+    enabled: demoMode,
+    refetchInterval: 2000,
+  });
+  const users = useQuery({
+    queryKey: ['demo', 'users'],
+    queryFn: () => api('/demo/users', { schema: z.array(demoUserSchema) }),
+    enabled: demoMode,
+    refetchInterval: 3000,
+  });
+
+  if (config.data && !demoMode) {
+    return <p className="p-8 text-center text-text-muted">{t('demo.off')}</p>;
+  }
+
+  return (
+    <div className="min-h-dvh bg-app-bg">
+      <header className="flex items-center gap-3 bg-brand px-4 py-3 text-white sm:px-6">
+        <Logo size={28} tone="light" />
+        <h1 className="text-lg font-medium">{t('routes.demo')}</h1>
+        <div className="ml-auto [&_label]:text-white/90">
+          <LanguageSelect />
+        </div>
+      </header>
+      <p className="bg-[#fff4d6] px-4 py-2 text-sm sm:px-6" role="note">
+        {t('demo.banner')}
+      </p>
+
+      <main className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <section aria-labelledby="feed-title" className="rounded-xl bg-surface p-4 shadow-sm">
+          <h2 id="feed-title" className="mb-3 font-medium">
+            {t('demo.feedTitle')}
+          </h2>
+          {sms.data?.length === 0 && (
+            <p className="text-sm text-text-muted">{t('demo.feedEmpty')}</p>
+          )}
+          <ol className="flex flex-col gap-3" aria-live="polite">
+            {sms.data?.map((item) => (
+              <SmsItem key={item.id} item={item} />
+            ))}
+          </ol>
+        </section>
+
+        <div className="flex flex-col gap-6">
+          <section aria-labelledby="users-title" className="rounded-xl bg-surface p-4 shadow-sm">
+            <h2 id="users-title" className="mb-3 font-medium">
+              {t('demo.usersTitle')}
+            </h2>
+            {users.data?.length === 0 ? (
+              <p className="text-sm text-text-muted">{t('demo.usersEmpty')}</p>
+            ) : (
+              <UsersTable users={users.data ?? []} />
+            )}
+          </section>
+
+          <section aria-labelledby="links-title" className="rounded-xl bg-surface p-4 shadow-sm">
+            <h2 id="links-title" className="mb-3 font-medium">
+              {t('demo.linksTitle')}
+            </h2>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <li>
+                <a
+                  className="text-brand hover:underline"
+                  href={`${window.location.protocol}//${window.location.hostname}:8025`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('demo.linkMailpit')}
+                </a>
+              </li>
+              <li>
+                <a
+                  className="text-brand hover:underline"
+                  href="/api/docs"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('demo.linkApiDocs')}
+                </a>
+              </li>
+              <li>
+                <a
+                  className="text-brand hover:underline"
+                  href="/api/health"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('demo.linkHealth')}
+                </a>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function useTime() {
+  const { i18n } = useTranslation();
+  return (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(new Date(iso));
+}
+
+function SmsItem({ item }: { item: DemoSms }) {
+  const { t } = useTranslation();
+  const time = useTime();
+  const code = item.purpose === 'otp' ? item.body.match(/\b(\d{6})\b/)?.[1] : undefined;
+  const failed = item.status === 'failed';
+
+  return (
+    <li className="rounded-lg border border-black/10 p-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+        <time dateTime={item.createdAt}>{time(item.createdAt)}</time>
+        <span aria-hidden="true">·</span>
+        <span className="font-medium text-text">
+          {t('demo.to', { phone: formatPhone(item.toE164) })}
+        </span>
+        <span className="rounded-full bg-app-bg px-2 py-0.5">
+          {t(`demo.purpose.${item.purpose}`)}
+        </span>
+        <span className="ml-auto">
+          {item.provider} ·{' '}
+          <span className={failed ? 'font-medium text-danger' : ''}>
+            {t(`demo.status.${item.status}`)}
+          </span>
+        </span>
+      </div>
+      {code && (
+        <div className="mt-2">
+          <DemoCodeBanner code={code} />
+        </div>
+      )}
+      <p className="mt-2 text-sm whitespace-pre-wrap break-words">{item.body}</p>
+      {item.error && <p className="mt-1 text-xs text-danger">{item.error}</p>}
+    </li>
+  );
+}
+
+function UsersTable({ users }: { users: DemoUser[] }) {
+  const { t } = useTranslation();
+  const time = useTime();
+  const yesNo = (value: boolean) => (value ? t('common.yes') : t('common.no'));
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="text-xs text-text-muted">
+          <tr>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {t('demo.colNumber')}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {t('demo.colAddress')}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {t('demo.colChannel')}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {t('demo.colMobile')}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {t('demo.colAlerts')}
+            </th>
+            <th scope="col" className="py-2 font-medium">
+              {t('demo.colCreated')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id} className="border-t border-black/5">
+              <td className="py-2 pr-3 whitespace-nowrap">{user.phoneDisplay}</td>
+              <td className="py-2 pr-3">{user.address}</td>
+              <td className="py-2 pr-3">{t(`demo.channel.${user.registrationChannel}`)}</td>
+              <td className="py-2 pr-3">{yesNo(user.hasMobileSession)}</td>
+              <td className={`py-2 pr-3 ${user.getsSmsAlerts ? 'font-medium text-brand' : ''}`}>
+                {yesNo(user.getsSmsAlerts)}
+              </td>
+              <td className="py-2 whitespace-nowrap">{time(user.createdAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -46,7 +46,9 @@ export async function api<T = unknown>(path: string, options: RequestOptions<T> 
       const { code, message, details } = parsed.data.error;
       throw new ApiRequestError(response.status, code, message, details);
     }
-    throw new ApiRequestError(response.status, 'INTERNAL', `Request failed (${response.status})`);
+    // Our API always answers with a JSON error. Anything else came from a proxy
+    // (nginx, the tunnel) because the server is down or unreachable.
+    throw new ApiRequestError(response.status, 'NETWORK', `Request failed (${response.status})`);
   }
 
   return schema ? schema.parse(data) : (data as T);

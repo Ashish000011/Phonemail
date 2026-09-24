@@ -1,4 +1,5 @@
 import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js/max';
+import { localPartFor } from '@phonemail/shared';
 import { AppError } from '../../lib/errors.js';
 
 /**
@@ -26,14 +27,8 @@ const REJECTED_TYPES = new Set([
   'PAGER',
 ]);
 
-/**
- * India uses the plain 10-digit number, as in the task (9876543210@…).
- * Everyone else gets 00 + country code + number (0014155550123@…).
- * Indian mobile numbers never start with 0, so the two can't collide.
- */
-export function localPartFor(countryCallingCode: string, nationalNumber: string): string {
-  return countryCallingCode === '91' ? nationalNumber : `00${countryCallingCode}${nationalNumber}`;
-}
+// The address rule lives in @phonemail/shared so the UIs preview the same address.
+export { localPartFor };
 
 /** Returns null for anything that isn't a valid mobile-capable number. */
 export function tryNormalizePhone(input: string, defaultCountry: string): NormalizedPhone | null {

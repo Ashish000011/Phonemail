@@ -152,3 +152,17 @@ why. The AI assistant adds to this list during the build; the README links here.
 53. public-url.sh updates the Twilio number's webhooks through the Twilio
     REST API and re-registers the SMSGate webhook, because the free
     Cloudflare quick-tunnel URL changes on every restart.
+54. Muted text is #54656f instead of the spec's #667781: the spec's grey is
+    only 4.1:1 on the app background, below the 4.5:1 the spec requires.
+55. Dates use Indian conventions in every language (en-IN, hi-IN, ta-IN):
+    "16/09/2026", "3:09 pm".
+56. On the web the "find my number" permission sheet focuses the number
+    field on Continue, which makes Chrome offer the number it knows (from
+    the Google account/SIM). True SIM reading needs the APK.
+57. Shared contacts are uploaded only from the Contact Picker (the user picks
+    them); where the API doesn't exist, the step is skipped silently.
+58. The "Get notified" card appears the first time an email arrives while
+    the app is open; granted notifications show only while the tab is in the
+    background (web push is out of scope).
+59. App icons are drawn by scripts/make-icons.mjs (plain Node, no image
+    libraries) from the same shapes as the SVG logo.

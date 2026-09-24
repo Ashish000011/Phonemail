@@ -4,7 +4,14 @@ import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { meSchema, sessionInfoSchema, updateMeBodySchema } from '@phonemail/shared';
+import {
+  contactSchema,
+  contactsUploadSchema,
+  meSchema,
+  sessionInfoSchema,
+  updateMeBodySchema,
+} from '@phonemail/shared';
+import { formatAddress, formatPhone, tryNormalizePhone } from '../addressing/index.js';
 import { env } from '../../config/env.js';
 import { db } from '../../lib/db.js';
 import { AppError } from '../../lib/errors.js';
@@ -143,6 +150,69 @@ export async function userRoutes(fastify: FastifyInstance) {
           .header('Cache-Control', 'private, max-age=31536000, immutable')
           .send(bytes)
       );
+    },
+  );
+
+  // ---- contacts the user chose to share (names instead of numbers) ----
+
+  app.post(
+    '/api/contacts',
+    {
+      preHandler: requireAuth,
+      schema: {
+        tags,
+        summary: 'Save contacts picked on the phone (only the ones the user chose)',
+        body: contactsUploadSchema,
+        response: { 200: z.object({ saved: z.number() }) },
+      },
+    },
+    async (request) => {
+      const { userId } = currentAuth(request);
+      let saved = 0;
+      for (const contact of request.body.contacts) {
+        for (const raw of contact.phones) {
+          const phone = tryNormalizePhone(raw, env.DEFAULT_COUNTRY);
+          if (!phone) continue;
+          await db.contact.upsert({
+            where: { userId_phoneE164: { userId, phoneE164: phone.e164 } },
+            create: { userId, phoneE164: phone.e164, name: contact.name },
+            update: { name: contact.name },
+          });
+          saved += 1;
+        }
+      }
+      return { saved };
+    },
+  );
+
+  app.get(
+    '/api/contacts',
+    {
+      preHandler: requireAuth,
+      schema: {
+        tags,
+        summary: 'My shared contacts (for recipient suggestions)',
+        response: { 200: z.array(contactSchema) },
+      },
+    },
+    async (request) => {
+      const { userId } = currentAuth(request);
+      const contacts = await db.contact.findMany({ where: { userId }, orderBy: { name: 'asc' } });
+      const users = await db.user.findMany({
+        where: { phoneE164: { in: contacts.map((c) => c.phoneE164) } },
+        select: { phoneE164: true, localPart: true },
+      });
+      const localPartByPhone = new Map(users.map((u) => [u.phoneE164, u.localPart]));
+      return contacts.map((c) => {
+        const localPart = localPartByPhone.get(c.phoneE164);
+        return {
+          id: c.id,
+          name: c.name,
+          phoneE164: c.phoneE164,
+          phoneDisplay: formatPhone(c.phoneE164),
+          address: localPart ? formatAddress(localPart, env.MAIL_DOMAIN) : null,
+        };
+      });
     },
   );
 

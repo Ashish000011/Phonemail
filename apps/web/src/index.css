@@ -11,11 +11,13 @@
   --color-bubble-out: #d9fdd3;
   --color-bubble-in: #ffffff;
   --color-text: #111b21;
-  --color-text-muted: #667781;
+  /* Darker than the spec's #667781, which is only 4.1:1 on app-bg; this passes 4.5:1 on both. */
+  --color-text-muted: #54656f;
   --color-tick-read: #53bdeb;
   --color-danger: #d93025;
 
-  --font-sans: Roboto, 'Segoe UI', system-ui, sans-serif;
+  /* Noto fonts only download for Hindi and Tamil text (unicode-range). */
+  --font-sans: Roboto, 'Segoe UI', 'Noto Sans Devanagari', 'Noto Sans Tamil', system-ui, sans-serif;
 }
 
 html,

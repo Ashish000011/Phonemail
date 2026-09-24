@@ -94,6 +94,29 @@ export const sessionInfoSchema = z.object({
 });
 export type SessionInfo = z.infer<typeof sessionInfoSchema>;
 
+// ---- contacts (shared from the mobile client) ---------------------------------------
+
+export const contactsUploadSchema = z.object({
+  contacts: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(100),
+        phones: z.array(z.string().max(32)).min(1).max(5),
+      }),
+    )
+    .max(1000),
+});
+
+export const contactSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phoneE164: z.string(),
+  phoneDisplay: z.string(),
+  /** Their PhoneMail address, when they have one */
+  address: z.string().nullable(),
+});
+export type Contact = z.infer<typeof contactSchema>;
+
 // ---- aliases ---------------------------------------------------------------------
 
 export const aliasSchema = z.object({

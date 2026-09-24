@@ -537,15 +537,25 @@ export async function patchConversation(
   id: string,
   changes: {
     isFavorite?: boolean;
+    isUnread?: true;
     title?: string | null;
     chatDraftSubject?: string | null;
     chatDraftBody?: string | null;
   },
 ): Promise<ConversationItem> {
   await ownedConversation(ownerId, id);
-  await db.conversation.update({ where: { id }, data: changes });
+  const { isUnread, ...fields } = changes;
+  await db.conversation.update({ where: { id }, data: fields });
+  if (isUnread) {
+    const newest = await db.mailboxEntry.findFirst({
+      where: { userId: ownerId, conversationId: id, direction: 'incoming', ...VISIBLE },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (newest) await db.mailboxEntry.update({ where: { id: newest.id }, data: { isRead: false } });
+  }
   // Draft autosaves happen every second while typing; only real changes are announced.
-  if (changes.isFavorite !== undefined || changes.title !== undefined) {
+  if (changes.isFavorite !== undefined || changes.title !== undefined || isUnread) {
     await publishEvent({
       userIds: [ownerId],
       type: 'conversation.updated',

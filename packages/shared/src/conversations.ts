@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { attachmentSchema } from './mail.js';
+import { attachmentSchema, searchMessageHitSchema, startChatSchema } from './mail.js';
 
 /** The four chips on the mobile Home screen. */
 export const CONVERSATION_FILTERS = ['all', 'unread', 'attachments', 'favorites'] as const;
@@ -108,12 +108,22 @@ export const chatMessagesPageSchema = z.object({
 });
 export type ChatMessagesPage = z.infer<typeof chatMessagesPageSchema>;
 
+/** GET /api/search: matching chats, matching emails, and "Start a chat with …". */
+export const searchResponseSchema = z.object({
+  conversations: z.array(conversationItemSchema),
+  messages: z.array(searchMessageHitSchema),
+  startChat: startChatSchema.nullable(),
+});
+export type SearchResponse = z.infer<typeof searchResponseSchema>;
+
 export const resolveConversationBodySchema = z.object({
   phoneOrAddress: z.string().trim().min(1).max(254),
 });
 
 export const patchConversationBodySchema = z.object({
   isFavorite: z.boolean().optional(),
+  /** "Mark as unread": the newest incoming email becomes unread again. */
+  isUnread: z.literal(true).optional(),
   title: z.string().trim().max(80).nullable().optional(),
   chatDraftSubject: z.string().max(300).nullable().optional(),
   chatDraftBody: z.string().max(100_000).nullable().optional(),

@@ -31,6 +31,7 @@ export class OtpService {
   constructor(
     private readonly store: KeyValueStore,
     private readonly pepper: string,
+    private readonly maxPerIpPerHour = OTP_MAX_PER_IP_PER_HOUR,
   ) {}
 
   private challengeKey(purpose: OtpPurpose, phoneE164: string) {
@@ -58,7 +59,7 @@ export class OtpService {
     if (cooldownLeft > 0) throw rateLimited(cooldownLeft, 'Wait a moment before asking again.');
 
     const ipKey = `otp:ip:${ip}`;
-    if ((await this.store.increment(ipKey, HOUR)) > OTP_MAX_PER_IP_PER_HOUR) {
+    if ((await this.store.increment(ipKey, HOUR)) > this.maxPerIpPerHour) {
       throw rateLimited(await this.store.ttl(ipKey), 'Too many code requests from this network.');
     }
 

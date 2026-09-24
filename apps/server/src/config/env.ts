@@ -67,6 +67,9 @@ export const envSchema = z.object({
   SMS_PROVIDERS: providerList,
   OTP_PROVIDER: z.enum(['auto', 'local', 'twilio_verify']).default('auto'),
   SMS_NOTIFY_COOLDOWN_SECONDS: z.coerce.number().int().min(0).default(0),
+  // Code requests allowed per IP address per hour. Everything from your own
+  // laptop reaches Docker from one IP, so raise it while testing.
+  OTP_IP_LIMIT_PER_HOUR: z.coerce.number().int().positive().default(20),
 
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
@@ -84,6 +87,8 @@ export const envSchema = z.object({
   // "*" accepts any text (only for a dedicated gateway phone).
   SMSGATE_SIGNUP_KEYWORD: z.string().default('JOIN'),
 
+  // Where the api submits outgoing mail: our own SMTP server ("smtp" in Docker).
+  SMTP_SUBMIT_HOST: z.string().default('localhost'),
   SMTP_RELAY_HOST: z.string().default('localhost'),
   SMTP_RELAY_PORT: z.coerce.number().int().positive().default(1025),
   SMTP_RELAY_USER: z.string().optional(),

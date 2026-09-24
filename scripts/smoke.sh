@@ -65,4 +65,51 @@ docker compose exec -T api node -e "
 " >/dev/null || fail "SMTP server did not greet with 220"
 pass "SMTP server greets on port 2525"
 
+# ---- mail end to end: sign in, receive over SMTP, send to the outside world ----
+MAILPIT_URL="${MAILPIT_URL:-http://localhost:8025}"
+JAR="$(mktemp)"
+trap 'rm -f "$JAR"' EXIT
+api() { curl -fsS -b "$JAR" -c "$JAR" -H 'x-requested-with: phonemail' -H 'content-type: application/json' "$@"; }
+
+# A fresh random Indian mobile number each run.
+PHONE="98$(printf '%08d' $(((RANDOM * 32768 + RANDOM) % 100000000)))"
+sent=$(api -X POST "$BASE_URL/api/auth/otp/request" -d "{\"phone\":\"$PHONE\"}") ||
+  fail "could not request a sign-in code (rate limited? see OTP_IP_LIMIT_PER_HOUR)"
+CODE=$(sed -n 's/.*"demoCode":"\([0-9]\{6\}\)".*/\1/p' <<<"$sent")
+[[ -n "$CODE" ]] || fail "no demo code returned (is DEMO_MODE on?)"
+me=$(api -X POST "$BASE_URL/api/auth/otp/verify" -d "{\"phone\":\"$PHONE\",\"code\":\"$CODE\",\"client\":\"web\"}") ||
+  fail "sign-in with the demo code failed"
+ADDRESS=$(sed -n 's/.*"address":"\([^"]*\)".*/\1/p' <<<"$me")
+pass "signed up and in as $ADDRESS with the demo code"
+
+wait_for() { # wait_for <description> <command...>: retries for ~15 s
+  local what="$1"
+  shift
+  for _ in $(seq 1 15); do
+    if "$@" >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+  fail "$what"
+}
+
+wait_for "welcome email missing" bash -c "curl -fsS -b '$JAR' '$BASE_URL/api/mailbox/inbox' | grep -q 'Welcome to PhoneMail'"
+pass "welcome email arrived"
+
+SUBJECT="Smoke inbound $(date +%s)"
+docker compose exec -T api node dist/scripts/send-test-email.js --to "$ADDRESS" --subject "$SUBJECT" >/dev/null ||
+  fail "an outside email over SMTP was refused"
+wait_for "outside email not in the inbox" bash -c "curl -fsS -b '$JAR' '$BASE_URL/api/mailbox/inbox' | grep -q '$SUBJECT'"
+pass "outside email delivered over SMTP and visible through the API"
+
+relay=$(docker compose exec -T api node dist/scripts/send-test-email.js --to someone@example.org 2>&1 || true)
+grep -q "Relaying denied" <<<"$relay" || fail "open relay? an outside-to-outside email was not refused: $relay"
+pass "not an open relay (550 Relaying denied)"
+
+OUT_SUBJECT="Smoke outbound $(date +%s)"
+api -X POST "$BASE_URL/api/messages" \
+  -d "{\"to\":[\"friend@example.com\"],\"subject\":\"$OUT_SUBJECT\",\"body\":\"Hi from PhoneMail\"}" >/dev/null ||
+  fail "sending to an outside address failed"
+wait_for "outbound email never reached Mailpit" bash -c "curl -fsS '$MAILPIT_URL/api/v1/messages' | grep -q '$OUT_SUBJECT'"
+pass "email to an outside address relayed to Mailpit"
+
 echo "All smoke checks passed."

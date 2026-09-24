@@ -20,6 +20,8 @@ import { userRoutes } from './modules/users/routes.js';
 import { aliasRoutes } from './modules/aliases/routes.js';
 import { portalRoutes } from './modules/portal/routes.js';
 import { demoRoutes } from './modules/demo/routes.js';
+import { mailRoutes } from './modules/mail/routes.js';
+import { mailboxRoutes } from './modules/mailbox/routes.js';
 
 export interface AppDeps {
   env: Env;
@@ -88,6 +90,8 @@ export async function buildApp({ env, logger, checks }: AppDeps): Promise<Fastif
   await app.register(userRoutes);
   await app.register(aliasRoutes);
   await app.register(portalRoutes);
+  await app.register(mailRoutes);
+  await app.register(mailboxRoutes);
   if (env.DEMO_MODE) await app.register(demoRoutes);
 
   return app;

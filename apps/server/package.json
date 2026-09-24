@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "dev": "tsx watch --env-file-if-exists=../../.env src/entry/api.ts",
     "dev:smtp": "tsx watch --env-file-if-exists=../../.env src/entry/smtp.ts",
     "dev:worker": "tsx watch --env-file-if-exists=../../.env src/entry/worker.ts",

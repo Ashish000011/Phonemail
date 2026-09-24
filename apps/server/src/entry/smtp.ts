@@ -1,37 +1,27 @@
-import { SMTPServer } from 'smtp-server';
 import { env } from '../config/env.js';
 import { logProviderSummary } from '../config/providers.js';
 import { createLogger } from '../lib/logger.js';
+import { db } from '../lib/db.js';
+import { redis } from '../lib/redis.js';
+import { closeQueues } from '../lib/queue.js';
+import { createSmtpServer } from '../modules/smtp/server.js';
 import { onShutdown } from './shutdown.js';
 
-// The SMTP server for @MAIL_DOMAIN. Phase 0 is a stub that accepts
-// connections and politely defers mail; the real engine arrives in Phase 2.
+// The SMTP server for @MAIL_DOMAIN: other mail servers deliver here, and the
+// api submits every email its users send.
 const logger = createLogger('smtp');
 logProviderSummary(logger, env);
 
-const server = new SMTPServer({
-  name: env.MAIL_DOMAIN,
-  banner: 'PhoneMail',
-  authOptional: true,
-  disabledCommands: ['STARTTLS', 'AUTH'],
-  logger: false,
-  onConnect(session, callback) {
-    logger.debug({ remoteAddress: session.remoteAddress }, 'smtp connection');
-    callback();
-  },
-  onRcptTo(_address, _session, callback) {
-    // 451 = temporary failure, so a real sender would retry later.
-    const error = Object.assign(new Error('Mail engine not ready yet, try again later'), {
-      responseCode: 451,
-    });
-    callback(error);
-  },
-});
-
+const server = createSmtpServer(logger);
 server.on('error', (err) => logger.error({ err }, 'smtp server error'));
 
-onShutdown(logger, () => new Promise<void>((resolve) => server.close(() => resolve())));
+onShutdown(logger, async () => {
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  await closeQueues();
+  await db.$disconnect();
+  redis.disconnect();
+});
 
 server.listen(env.SMTP_PORT, '0.0.0.0', () => {
-  logger.info({ port: env.SMTP_PORT }, 'smtp listening');
+  logger.info({ port: env.SMTP_PORT, domain: env.MAIL_DOMAIN }, 'smtp listening');
 });

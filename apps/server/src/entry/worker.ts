@@ -1,30 +1,84 @@
 import { writeFileSync } from 'node:fs';
-import { Worker } from 'bullmq';
+import { Worker, type Job } from 'bullmq';
 import { env } from '../config/env.js';
 import { logProviderSummary } from '../config/providers.js';
 import { WORKER_HEARTBEAT_FILE } from '../config/constants.js';
 import { createLogger } from '../lib/logger.js';
-import { createRedis } from '../lib/redis.js';
-import { QUEUES } from '../lib/queue.js';
+import { db } from '../lib/db.js';
+import { redis, createRedis } from '../lib/redis.js';
+import { closeQueues, getQueue, QUEUES } from '../lib/queue.js';
+import { relayGaveUp, relayMessage, type RelayJob } from '../modules/mail/relay.js';
+import { purgeOldTrash, purgeUnsentUploads } from '../modules/mailbox/service.js';
 import { onShutdown } from './shutdown.js';
 
-// Background jobs (BullMQ). Later phases add SMS notifications, the outbound
-// relay and signup replies; Phase 0 only runs the maintenance queue.
+// Background jobs (BullMQ): relaying mail to other domains, housekeeping, and
+// (from Phase 3) SMS alerts. Each job retries with growing waits.
 const logger = createLogger('worker');
 logProviderSummary(logger, env);
 
 const connection = createRedis('worker', { forQueue: true });
+const HOUR = 60 * 60 * 1000;
 
 const maintenance = new Worker(
   QUEUES.maintenance,
   async (job) => {
-    logger.info({ job: job.name, id: job.id }, 'maintenance job');
+    switch (job.name) {
+      case 'purge-trash':
+        return { deleted: await purgeOldTrash() };
+      case 'purge-uploads':
+        return { deleted: await purgeUnsentUploads() };
+      default:
+        logger.warn({ job: job.name }, 'unknown maintenance job');
+    }
   },
   { connection },
 );
 
-maintenance.on('failed', (job, err) => logger.error({ job: job?.name, err }, 'job failed'));
-maintenance.on('ready', () => logger.info({ queue: QUEUES.maintenance }, 'worker ready'));
+const relay = new Worker<RelayJob>(
+  QUEUES.relay,
+  async (job) => {
+    await relayMessage(job.data);
+    return { relayed: job.data.recipients.length };
+  },
+  { connection, concurrency: 5 },
+);
+
+// The same schedule is set on every start; upsert keeps just one copy of each.
+await getQueue(QUEUES.maintenance).upsertJobScheduler(
+  'purge-trash',
+  { every: 24 * HOUR },
+  { name: 'purge-trash' },
+);
+await getQueue(QUEUES.maintenance).upsertJobScheduler(
+  'purge-uploads',
+  { every: HOUR },
+  { name: 'purge-uploads' },
+);
+
+for (const worker of [maintenance, relay]) {
+  worker.on('ready', () => logger.info({ queue: worker.name }, 'worker ready'));
+  worker.on('completed', (job: Job, result: unknown) =>
+    logger.info({ queue: worker.name, job: job.name, id: job.id, result }, 'job done'),
+  );
+  worker.on('failed', (job, err) =>
+    logger.warn(
+      {
+        queue: worker.name,
+        job: job?.name,
+        id: job?.id,
+        attempt: job?.attemptsMade,
+        err: err.message,
+      },
+      'job failed',
+    ),
+  );
+}
+
+// After the last retry, tell the sender their outside email didn't go through.
+relay.on('failed', (job) => {
+  if (!job || job.attemptsMade < (job.opts.attempts ?? 1)) return;
+  relayGaveUp(job.data).catch((err) => logger.error({ err }, 'could not report relay failure'));
+});
 
 // The Docker healthcheck reads this file's age to know the worker is alive.
 function heartbeat() {
@@ -35,6 +89,9 @@ const heartbeatTimer = setInterval(heartbeat, 10_000);
 
 onShutdown(logger, async () => {
   clearInterval(heartbeatTimer);
-  await maintenance.close();
+  await Promise.all([maintenance.close(), relay.close()]);
+  await closeQueues();
   connection.disconnect();
+  await db.$disconnect();
+  redis.disconnect();
 });

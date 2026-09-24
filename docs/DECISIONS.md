@@ -45,3 +45,23 @@ why. The AI assistant adds to this list during the build; the README links here.
     so mail meant for the old owner can't be captured.
 16. External recipients go through a configurable SMTP relay; in demo mode
     that's Mailpit, so judges can see outgoing external mail safely.
+17. Node.js 24 LTS. The task only says "Node.js or Go"; 24 is the current
+    Active LTS and matches the dev machine, so local and Docker behave alike.
+18. Development happens natively on Windows (not inside WSL). Images are
+    built with COPY, not bind mounts, so there is no speed penalty;
+    `.gitattributes` keeps LF line endings and the scripts need only bash,
+    curl and Docker.
+19. "Toll-free number": a Twilio trial can't get an Indian toll-free number,
+    and US toll-free numbers can't be dialled from India, so PhoneMail uses the
+    trial's US local number. The demo console also has "Call me": Twilio calls
+    a verified phone and runs the exact same IVR flow, which avoids
+    international call charges and garbled caller ID.
+20. SMSGate runs on the builder's personal phone, which also receives bank
+    OTPs and personal texts. On that channel only messages starting with
+    JOIN (SMSGATE_SIGNUP_KEYWORD) or HELP/INFO are acted on; senders that
+    aren't phone numbers are ignored; ignored message bodies are never stored
+    or logged. The Twilio number is dedicated, so any text there signs up.
+21. The chat input's emoji button opens a small built-in grid of common
+    emoji. No emoji-picker dependency; the phone keyboard covers the rest.
+22. With a 4-day window, the installable app is a PWA (manifest + service
+    worker, "Add to Home screen"). The Capacitor APK stays a stretch goal.

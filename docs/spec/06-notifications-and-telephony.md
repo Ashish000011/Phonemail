@@ -101,8 +101,20 @@ With `retry=1` and still no input: say goodbye and hang up.
 - Stay inside the 5-second budget: do the database work directly (it's fast)
   and push the SMS to the queue.
 
+"Call me" (demo console, needs Twilio credentials): `POST /api/demo/ivr/call-me`
+{ phone } makes Twilio call that verified number with
+`url = PUBLIC_BASE_URL/webhooks/twilio/voice`. For outbound calls
+(Direction = outbound-api) the caller is `To`, not `From`. Same TwiML, same
+account creation. Use a US *local* Twilio number: US toll-free numbers can't
+be dialled from India. Trial calls start with a short Twilio notice.
+
 ## SMS account creation
 Inbound SMS from Twilio (`POST /webhooks/twilio/sms`) or SMSGate:
+- SMSGate only (it runs on a personal phone that also gets bank OTPs and
+  personal texts): ignore senders that aren't valid phone numbers, and act
+  only on texts starting with SMSGATE_SIGNUP_KEYWORD (default JOIN) or
+  HELP/INFO. Ignored bodies are never stored or logged. The Twilio number is
+  dedicated, so any text there counts.
 - HELP or INFO (any case) → reply with what PhoneMail is and how to join.
 - Anything else → createAccount({ phone: sender, channel: 'sms' }) and reply
   "Welcome to PhoneMail! Your email address is 9876543210@phonemail.com. Sign
@@ -113,9 +125,12 @@ Inbound SMS from Twilio (`POST /webhooks/twilio/sms`) or SMSGate:
 ## Public URL for webhooks and phone demos
 - `docker compose --profile public up -d` starts cloudflared; its logs show a
   `https://….trycloudflare.com` URL (it changes on every restart).
-- Set PUBLIC_BASE_URL to it, `docker compose up -d` again, paste
-  `<url>/webhooks/twilio/voice` and `<url>/webhooks/twilio/sms` into the Twilio
-  console, and run the SMSGate webhook script.
+- `scripts/public-url.sh` does the rest in one command: reads the URL from
+  the cloudflared logs, writes PUBLIC_BASE_URL to .env, recreates api and
+  worker, sets `<url>/webhooks/twilio/voice` and `<url>/webhooks/twilio/sms`
+  on the Twilio number through the REST API (when credentials are set), and
+  re-registers the SMSGate webhook. The manual steps stay in the README as a
+  fallback.
 - The same URL gives HTTPS on a phone, which WebOTP and the service worker need.
 - README section: "Enable real calls and SMS (optional)" with these steps.
 

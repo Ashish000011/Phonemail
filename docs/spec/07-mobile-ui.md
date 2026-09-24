@@ -182,7 +182,8 @@ Input area (bottom):
   for new emails, hidden while replying.
 - Reply bar while replying: the quoted target, ✕ to cancel, and "Open in full
   view" to continue the reply in the traditional composer.
-- Message row: emoji button, auto-growing "Message" box, attach button, the
+- Message row: emoji button (a small built-in grid of common emoji),
+  auto-growing "Message" box, attach button, the
   full-view button where WhatsApp has its camera button (envelope with an
   expand arrow; aria-label "Write in full view"), and a round send button when
   there's text.
@@ -226,6 +227,13 @@ contact suggestions (phone numbers or emails; invalid chips in red), Bcc behind
   devices".
 - Help: Terms, Privacy, About (version, GitHub link). Theme (stretch).
 - Log out.
+
+## PWA
+vite-plugin-pwa: manifest (PhoneMail, theme color brand, maskable logo icons,
+display standalone, start_url /m), app-shell precache only; /api, /socket.io
+and /webhooks are never cached. On Android Chrome "Add to Home screen" gives
+an app icon and a full-screen app. This is the installable app for the
+4-day window; the APK below is a stretch.
 
 ## States
 Skeleton rows while loading; an offline banner "Waiting for network…" when

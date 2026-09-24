@@ -85,7 +85,7 @@ phonemail/
         locales/         en.json, hi.json, ta.json
   packages/shared/       zod schemas, DTO types, event names, constants
   docs/
-  scripts/               smoke.sh, send-test-email.ts, smsgate-register-webhook.ts
+  scripts/               smoke.sh, public-url.sh, send-test-email.ts, smsgate-register-webhook.ts
   docker-compose.yml
   .env.example
   .gitattributes         (* text=auto eol=lf)
@@ -124,6 +124,7 @@ All have safe demo defaults; compose uses `${VAR:-default}` so no `.env` is need
 | SMSGATE_API_URL | https://api.sms-gate.app/3rdparty/v1 | SMSGate cloud mode |
 | SMSGATE_USERNAME, SMSGATE_PASSWORD | empty | shown in the SMSGate app |
 | SMSGATE_WEBHOOK_SECRET | dev value | secret path segment for the inbound SMS webhook |
+| SMSGATE_SIGNUP_KEYWORD | JOIN | SMSGate inbound texts must start with this to sign up (personal phone); empty = any text |
 | SMTP_RELAY_HOST, SMTP_RELAY_PORT, SMTP_RELAY_USER, SMTP_RELAY_PASS | mailpit, 1025 | outbound relay for external domains |
 | SMS_NOTIFY_COOLDOWN_SECONDS | 0 | optional per-sender throttle |
 
@@ -132,8 +133,8 @@ custom text, the resolved OTP path, the resolved AUTH_MODE, and demo mode.
 `GET /api/config` exposes the non-secret parts to the UIs.
 
 ## Docker requirements
-- Multi-stage builds on `node:22-slim` (Prisma is happier on Debian than
-  Alpine), non-root user, `npm ci`, production dependencies only in the final
+- Multi-stage builds on `node:24-slim` (Prisma is happier on Debian than
+  Alpine; install `openssl`, which Prisma needs and slim lacks), non-root user, `npm ci`, production dependencies only in the final
   stage.
 - Volumes: `pgdata`, `redisdata`, `maildata` (raw .eml files and attachments
   under /data, mounted into api, smtp and worker).

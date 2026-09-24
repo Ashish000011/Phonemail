@@ -9,7 +9,7 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 | 1 | Data model, auth, registration portal | code done; DB run pending | | 106 unit tests pass; routes verified without a DB (validation, errors, OpenAPI with 22 routes); portal and demo console checked in the browser at 375 px and in Tamil. Needs Docker for the end-to-end run (register via portal with the demo code) |
 | 2 | Mail engine | code done; stack run pending | | 159 unit tests pass (full keying table, sanitizer, spam, tokens, recipients, files); 38 routes register. Integration tests (9) and smoke.sh mail checks written; they need Docker to run |
 | 3 | Chats, realtime, SMS alerts | code done; stack run pending | | 178 unit tests; 15 integration tests written (skip without the stack). Seed data, demo console v2 (live feed + send email over SMTP with 4 presets) |
-| 4 | Mobile UI: design system, onboarding, home | not started | | |
+| 4 | Mobile UI: design system, onboarding, home | code done; live data check pending | | Onboarding screens 1–4 checked in the browser at 360 px (en/hi), incl. keyboard flow, demo banner, auto-submit; Home, selection mode and drawer checked with stubbed data. PWA builds (manifest + icons + service worker) |
 | 5a | Mobile UI: chat screen | not started | | |
 | 5b | Mobile UI: reader, composer, chat info, settings | not started | | |
 | 6 | Telephony: IVR and SMS signup | code done; real call test pending | | 195 unit tests; simulators in the demo console; Twilio signature checks; SMSGate JOIN gate; public-url.sh. Needs Docker + Twilio/SMSGate accounts for the real test |

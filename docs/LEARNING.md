@@ -379,3 +379,63 @@ The Twilio number exists only for PhoneMail, so any text there signs you up.
    and their address.
 5. **Can you demo without a phone?** Yes. The demo console's simulators run
    the exact same code as the webhooks and show what the caller would hear.
+
+---
+
+## Phase 4: the mobile app, part 1 (onboarding and Home)
+
+### How the screens are built
+```
+apps/web/src/mobile/
+  MobileShell.tsx      the phone-width column, live updates, toasts, announcer
+  onboarding/          Language → Terms → Phone → Verify (+ contacts sheet)
+  home/                HomeScreen, ChatRow, SearchResults, MenuDrawer
+  folders/             Drafts, Spam, Trash
+  ui/                  TopBar, IconButton, BottomSheet, Dialog, Avatar, Ticks…
+  live.tsx             Socket.IO → cache updates, "Waiting for network…"
+```
+Small primitives (ui/) are reused everywhere, so every screen gets the same
+focus handling, labels and motion rules for free.
+
+### How TanStack Query and Socket.IO keep screens fresh
+- TanStack Query caches every API answer under a key, e.g.
+  `['conversations', 'all']` or `['messages', chatId]`. Screens read the cache
+  and it refetches when stale.
+- When the server says `message:new`, `live.tsx` edits the cache directly: the
+  chat jumps to the top of the list and the bubble is appended to that
+  chat's messages. No refetch, so it appears instantly.
+- After a reconnect we refetch everything once, to catch events we missed.
+
+### How the OTP auto-detection works
+Three ways, all on the same input `autocomplete="one-time-code"`:
+1. **Android Chrome (WebOTP):** our SMS ends with `@yourhost #123456`. The
+   page calls `navigator.credentials.get({ otp: … })`; Chrome shows "Allow
+   PhoneMail to read this code?" and hands us the digits. We cancel the wait
+   (AbortController) if you leave the screen.
+2. **iPhone Safari:** the keyboard suggests the code from Messages.
+3. **APK (stretch):** the SMS User Consent API.
+The sixth digit submits automatically.
+
+### Accessibility built in from the start
+- Every icon button has a label (the component won't compile without one).
+- Sheets and dialogs trap focus, close on Escape, and give focus back.
+- Long-press has keyboard and mouse equivalents (Menu key / right-click).
+- New emails are announced through a live region; ticks have spoken labels.
+- The muted grey was darkened to pass 4.5:1 contrast.
+- `prefers-reduced-motion` turns the slide animations off.
+
+### Judge questions
+1. **Why a web app and not a native app?** The organizers allowed it, and
+   it installs to the home screen as a PWA (icon, full screen). An APK via
+   Capacitor is a stretch goal on top of the same code.
+2. **How does it know my number?** On the web, browsers don't expose the SIM.
+   We pre-fill from the `?phone=` link in the welcome SMS or from Chrome's
+   autofill, and the field always stays editable. The APK could read it.
+3. **What if the internet drops?** A "Waiting for network…" banner appears;
+   when the socket reconnects, every visible list refetches.
+4. **How does the app stay signed in?** The 15-minute access cookie is
+   renewed automatically: the first request that gets 401 refreshes once
+   (shared by all requests) and retries.
+5. **Hindi and Tamil?** Every string comes from en/hi/ta JSON files, a test
+   fails if any key is missing, and Noto fonts load only when those scripts
+   appear on screen.

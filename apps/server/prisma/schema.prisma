@@ -1,5 +1,4 @@
-// PhoneMail database schema. The full data model arrives in Phase 1
-// (see docs/spec/02-data-model.md).
+// PhoneMail database schema. The rules behind it are in docs/spec/02-data-model.md.
 
 generator client {
   provider = "prisma-client-js"
@@ -16,4 +15,386 @@ model AppMeta {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum Language {
+  en
+  hi
+  ta
+}
+
+enum RegistrationChannel {
+  ivr
+  sms
+  portal
+  web
+  mobile
+}
+
+enum ClientType {
+  mobile
+  web
+  apk
+}
+
+enum ConversationKind {
+  direct
+  group
+  self
+}
+
+enum RecipientKind {
+  to
+  cc
+  bcc
+}
+
+enum Direction {
+  incoming
+  outgoing
+}
+
+enum DeliveryState {
+  sending
+  sent
+  delivered
+  read
+  failed
+}
+
+enum SmsPurpose {
+  otp
+  notification
+  signup_reply
+  ivr_confirmation
+  other
+}
+
+enum SmsStatus {
+  queued
+  sent
+  failed
+  simulated
+}
+
+enum AuthEventType {
+  otp_requested
+  otp_failed
+  otp_verified
+  login
+  logout
+  password_changed
+  session_revoked
+  account_created
+}
+
+/// A PhoneMail account. The phone number is the identity; localPart is the
+/// primary address (9876543210 for India, 00 + country code + number elsewhere).
+model User {
+  id                   String              @id @default(uuid()) @db.Uuid
+  phoneE164            String              @unique
+  localPart            String              @unique
+  displayName          String?
+  about                String?
+  avatarPath           String?
+  language             Language            @default(en)
+  passwordHash         String?
+  mustChangePassword   Boolean             @default(false)
+  registrationChannel  RegistrationChannel
+  tosVersion           String?
+  tosAcceptedAt        DateTime?
+  readReceipts         Boolean             @default(true)
+  loadRemoteImages     Boolean             @default(false)
+  /// null = send as the primary address
+  defaultSendAsAliasId String?             @db.Uuid
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  aliases         Alias[]
+  sessions        Session[]
+  contacts        Contact[]
+  conversations   Conversation[]
+  mailboxEntries  MailboxEntry[]
+  sentMessages    Message[]          @relation("MessageFromUser")
+  recipientOf     MessageRecipient[]
+  attachments     Attachment[]
+  drafts          Draft[]
+  blockedSenders  BlockedSender[]
+  smsLogs         SmsLog[]
+  authEvents      AuthEvent[]
+  participantIn   ConversationParticipant[]
+}
+
+/// An extra address owned by a user. Deleted aliases are kept for 30 days
+/// (deletedAt set) so nobody else can claim them and catch the old owner's mail.
+model Alias {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  localPart String    @unique
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// One signed-in device. Only a hash of the refresh token is stored.
+model Session {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String     @db.Uuid
+  clientType        ClientType
+  refreshTokenHash  String     @unique
+  /// The token before the last rotation; seeing it again means it was stolen.
+  previousTokenHash String?
+  userAgent         String?
+  ip                String?
+  lastSeenAt        DateTime   @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, clientType])
+  @@index([previousTokenHash])
+}
+
+/// Contacts the user chose to share from the mobile client (names instead of numbers).
+model Contact {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  phoneE164 String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, phoneE164])
+}
+
+/// One chat for one owner, keyed by the set of other people in it.
+model Conversation {
+  id                 String           @id @default(uuid()) @db.Uuid
+  ownerId            String           @db.Uuid
+  kind               ConversationKind
+  participantKeyHash String
+  participantKeys    String[]
+  /// The owner's own name for a group chat.
+  title              String?
+  isFavorite         Boolean          @default(false)
+  lastMessageAt      DateTime         @default(now())
+  lastMessageId      String?          @db.Uuid
+  chatDraftSubject   String?
+  chatDraftBody      String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  owner        User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  entries      MailboxEntry[]
+  drafts       Draft[]
+
+  @@unique([ownerId, participantKeyHash])
+  @@index([ownerId, lastMessageAt(sort: Desc)])
+  @@index([ownerId, isFavorite])
+}
+
+model ConversationParticipant {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @db.Uuid
+  /// u:<userId> for PhoneMail users, e:<address> for everyone else
+  identityKey    String
+  userId         String?  @db.Uuid
+  /// The address to show for this person
+  address        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, identityKey])
+}
+
+/// One row per email, shared by every local participant (each gets a MailboxEntry).
+model Message {
+  id               String   @id @default(uuid()) @db.Uuid
+  messageIdHeader  String   @unique
+  threadId         String
+  inReplyToHeader  String?
+  referencesHeader String?
+  /// The In-Reply-To message, when we have it
+  parentMessageId  String?  @db.Uuid
+  fromAddress      String
+  fromUserId       String?  @db.Uuid
+  fromName         String?
+  subject          String
+  textBody         String
+  htmlSanitized    String?
+  snippet          String
+  sentAt           DateTime
+  sizeBytes        Int
+  rawPath          String
+  hasAttachments   Boolean  @default(false)
+  hasRemoteImages  Boolean  @default(false)
+  spamScore        Int      @default(0)
+  plusTag          String?
+  /// Full-text search over subject, body and sender. A generated column
+  /// defined in raw SQL (see the migration); Prisma only knows its type.
+  searchVector     Unsupported("tsvector")?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  fromUser    User?              @relation("MessageFromUser", fields: [fromUserId], references: [id], onDelete: SetNull)
+  parent      Message?           @relation("MessageParent", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  children    Message[]          @relation("MessageParent")
+  recipients  MessageRecipient[]
+  attachments Attachment[]
+  entries     MailboxEntry[]
+
+  @@index([threadId])
+  @@index([searchVector], type: Gin)
+}
+
+model MessageRecipient {
+  id        String        @id @default(uuid()) @db.Uuid
+  messageId String        @db.Uuid
+  kind      RecipientKind
+  address   String
+  userId    String?       @db.Uuid
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+  @@index([userId])
+}
+
+/// One user's copy of one message: read, starred, spam, trash, replied.
+model MailboxEntry {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @db.Uuid
+  messageId      String         @db.Uuid
+  conversationId String         @db.Uuid
+  direction      Direction
+  isRead         Boolean        @default(false)
+  isStarred      Boolean        @default(false)
+  isSpam         Boolean        @default(false)
+  trashedAt      DateTime?
+  /// Set when this user replied to this message (each message: one reply).
+  repliedAt      DateTime?
+  replyMessageId String?        @db.Uuid
+  /// Outgoing only
+  deliveryState  DeliveryState?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message      Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId, direction])
+  @@index([userId, conversationId, createdAt(sort: Desc)])
+  @@index([userId, direction, isSpam, trashedAt])
+  @@index([conversationId])
+}
+
+model Attachment {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// null until the email is sent
+  messageId   String?  @db.Uuid
+  uploaderId  String?  @db.Uuid
+  filename    String
+  contentType String
+  sizeBytes   Int
+  storagePath String
+  sha256      String
+  contentId   String?
+  isInline    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  message  Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader User?    @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+  @@index([uploaderId, messageId])
+}
+
+model Draft {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @db.Uuid
+  conversationId   String?  @db.Uuid
+  to               String[]
+  cc               String[]
+  bcc              String[]
+  subject          String   @default("")
+  body             String   @default("")
+  replyToMessageId String?  @db.Uuid
+  fromAliasId      String?  @db.Uuid
+  attachmentIds    String[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+/// Mail from a blocked identity goes straight to Spam.
+model BlockedSender {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  identityKey String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, identityKey])
+}
+
+/// Every SMS attempt (sent, failed or simulated). Also the demo console's feed.
+model SmsLog {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String?    @db.Uuid
+  toE164            String
+  body              String
+  purpose           SmsPurpose
+  provider          String
+  status            SmsStatus
+  providerMessageId String?
+  error             String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+/// Audit trail of sign-ups, sign-ins and security events.
+model AuthEvent {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String?       @db.Uuid
+  phoneE164 String?
+  type      AuthEventType
+  channel   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }

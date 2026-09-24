@@ -5,7 +5,7 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 
 | Phase | What | Status | Tag | Notes |
 |---|---|---|---|---|
-| 0 | Scaffold and Docker skeleton | not started | | |
+| 0 | Scaffold and Docker skeleton | code done; Docker check pending | | typecheck, lint, 34 unit tests and both builds pass; api/smtp entries verified locally. Waiting for Docker Desktop to run compose + smoke.sh |
 | 1 | Data model, auth, registration portal | not started | | |
 | 2 | Mail engine | not started | | |
 | 3 | Chats, realtime, SMS alerts | not started | | |
@@ -19,5 +19,6 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 | 10 | APK (stretch, likely cut; PWA instead) | not started | | |
 
 ## Known issues
+- Docker Desktop not installed yet on the dev machine: compose and smoke.sh not run.
 
 ## Cut from scope (and why)

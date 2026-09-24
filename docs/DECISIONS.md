@@ -65,3 +65,12 @@ why. The AI assistant adds to this list during the build; the README links here.
     emoji. No emoji-picker dependency; the phone keyboard covers the rest.
 22. With a 4-day window, the installable app is a PWA (manifest + service
     worker, "Add to Home screen"). The Capacitor APK stays a stretch goal.
+23. Package versions: the well-known majors (TypeScript 5.9, Vite 7,
+    Vitest 4, React Router 7, Prisma 6, ESLint 10) rather than the newest
+    majors released weeks before the event (TypeScript 7, Vite 8, Prisma 8
+    RC), which the lint and build tooling doesn't fully support yet.
+24. nginx runs as the unprivileged image and listens on 8080 inside the
+    container too (non-root can't bind port 80). The tunnel points at web:8080.
+25. The API sets its own security headers (helmet); nginx adds the page
+    headers (CSP, X-Frame-Options, …) only to the SPA files, so no header is
+    sent twice.

@@ -78,3 +78,80 @@ screen.
    has a Docker healthcheck, and `./scripts/smoke.sh` tests the whole chain.
 5. **How do you stop cross-site request forgery?** The custom header check
    above, plus SameSite cookies (Phase 1).
+
+---
+
+## Phase 1: accounts, sign-in and the registration portal
+
+### What was built
+- **The database** (`apps/server/prisma/schema.prisma`): users, aliases,
+  sessions, conversations, messages, mailbox entries, attachments, drafts,
+  blocked senders, SMS log and an audit log. Postgres keeps a search index
+  for every email up to date by itself (a *generated column*), so search
+  needs no extra code.
+- **Addressing** (`modules/addressing`): `+91 98765-43210`, `09876543210`
+  and `98765 43210` all become `+919876543210` and the address
+  `9876543210@phonemail.com`. Other countries get `00` + country code
+  (`0014155550123@…`). Landlines are refused.
+- **OTP codes** (`modules/auth/otp.ts`), **SMS providers**
+  (`providers/sms`), **sessions** (`modules/auth/sessions.ts`), profile,
+  aliases, the **portal** at `/register` and the **demo console** at `/demo`.
+- **API docs** at `/api/docs`, generated from the same zod schemas that
+  validate every request.
+
+### How a sign-in code works
+```
+1. POST /api/auth/otp/request {phone}
+   ├─ normalize the number (+919876543210)
+   ├─ limits: 30 s between codes, 5 codes/number/hour, 20 requests/IP/hour
+   ├─ make a random 6-digit code
+   ├─ store only HMAC(pepper, "login:+91…:123456") in Redis for 5 minutes
+   └─ send the SMS through the first provider that can (SMSGate → Twilio → console)
+2. POST /api/auth/otp/verify {phone, code}
+   ├─ recompute the HMAC and compare in constant time
+   ├─ wrong: attempts + 1; after 5 the code is destroyed
+   ├─ right: delete the code (it works once), create the account if new
+   └─ start a session: set two cookies
+```
+**Why it's secure:** the code is never stored, only a keyed hash, so even a
+copy of Redis doesn't reveal it. It expires in 5 minutes, allows 5 guesses,
+and the limits stop someone from spamming codes or guessing at scale.
+
+### Cookies vs tokens
+We use both: the *tokens* live *inside* httpOnly *cookies*.
+- `pm_at` (access, 15 minutes): a signed JWT saying "user X, session Y".
+- `pm_rt` (refresh, 30 days): a random string. The database stores only its
+  SHA-256 hash. Every refresh swaps it for a new one ("rotation"). If an old
+  one is ever used again, someone copied it, so the whole session is
+  revoked.
+- httpOnly means page JavaScript can't read them, so a malicious script
+  can't steal them. SameSite=Lax plus our `X-Requested-With` header stops
+  other websites from using them.
+- Why not localStorage? Anything in localStorage is readable by any script
+  on the page.
+
+### How the OTP path is chosen (`config/providers.ts`)
+1. A provider that can send our own text (SMSGate, or a paid Twilio) → our
+   code by real SMS. The last line `@host #123456` lets Chrome on Android
+   fill it in automatically.
+2. Else Twilio Verify, if configured → Twilio makes and checks the code.
+3. Else demo mode → the code shows in the demo console and a banner.
+4. Else → password mode.
+The Twilio *trial* only sends fixed templates, so it can never carry a code.
+Every service logs its choice at startup ("provider summary").
+
+### Judge questions
+1. **What stops someone guessing a code?** 5 wrong tries destroy it, a new
+   code needs 30 s, max 5 codes per number and 20 per IP per hour. That's at
+   most 25 guesses an hour out of a million combinations.
+2. **What if your database leaks?** Codes are only HMAC hashes (with a
+   secret pepper) in Redis, refresh tokens are SHA-256 hashes, passwords
+   are argon2id. None can be used directly.
+3. **How do you detect a stolen session?** Refresh tokens rotate on every
+   use; if an already-used one comes back, we revoke that session and log
+   an audit event.
+4. **Why does the portal set no cookies?** It's registration only, like a
+   kiosk: the next person must not end up signed in as the previous one.
+5. **What happens without any SMS provider?** Demo mode shows codes in the
+   demo console; with demo mode off, the app switches to passwords
+   automatically and says so at startup.

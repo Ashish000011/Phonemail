@@ -74,3 +74,22 @@ why. The AI assistant adds to this list during the build; the README links here.
 25. The API sets its own security headers (helmet); nginx adds the page
     headers (CSP, X-Frame-Options, …) only to the SPA files, so no header is
     sent twice.
+26. Password mode: signing in with a new number creates the account (as OTP
+    sign-in does: "New here? We'll create your address"). It can't prove the
+    number is yours, which is exactly why OTP is the default. An account made
+    with a code has no password until one is set (PASSWORD_NOT_SET).
+27. Every authenticated request checks the session row, not just the JWT, so
+    "Log out" and "Log out of all other devices" work immediately instead of
+    after the 15-minute token expires. A primary-key lookup is cheap here.
+28. A refresh token that was just rotated (within 10 seconds) is treated as
+    two tabs refreshing at once (401 REFRESH_RACE, the client retries), not
+    as theft. Older reuse revokes the session.
+29. Outside demo mode, 6-digit codes are masked in SmsLog, so the database
+    never holds a usable code. In demo mode they're shown on purpose.
+30. Full-text search uses Postgres's "simple" configuration (no English
+    stemming), so Hindi and Tamil words match as typed.
+31. The portal previews "Your address: …" while you type, using the same
+    address rule as the server (packages/shared/src/address.ts).
+32. SMSGate delivers inbound-SMS webhooks straight from the phone to our
+    server (not through their cloud), and signs them with X-Signature
+    (HMAC-SHA256). Phase 6 verifies that signature as well as the secret path.

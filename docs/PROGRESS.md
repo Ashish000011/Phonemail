@@ -6,7 +6,7 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 | Phase | What | Status | Tag | Notes |
 |---|---|---|---|---|
 | 0 | Scaffold and Docker skeleton | code done; Docker check pending | | typecheck, lint, 34 unit tests and both builds pass; api/smtp entries verified locally. Waiting for Docker Desktop to run compose + smoke.sh |
-| 1 | Data model, auth, registration portal | not started | | |
+| 1 | Data model, auth, registration portal | code done; DB run pending | | 106 unit tests pass; routes verified without a DB (validation, errors, OpenAPI with 22 routes); portal and demo console checked in the browser at 375 px and in Tamil. Needs Docker for the end-to-end run (register via portal with the demo code) |
 | 2 | Mail engine | not started | | |
 | 3 | Chats, realtime, SMS alerts | not started | | |
 | 4 | Mobile UI: design system, onboarding, home | not started | | |

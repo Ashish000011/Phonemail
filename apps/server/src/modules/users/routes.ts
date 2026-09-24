@@ -92,7 +92,9 @@ export async function userRoutes(fastify: FastifyInstance) {
       if (!file) throw new AppError(400, 'FILE_INVALID', 'Choose a photo to upload.');
       const bytes = await file.toBuffer();
       const type = sniffImageType(bytes);
-      if (!type) throw new AppError(400, 'FILE_INVALID', 'Use a JPEG, PNG or WebP photo.');
+      if (!type || type === 'image/gif') {
+        throw new AppError(400, 'FILE_INVALID', 'Use a JPEG, PNG or WebP photo.');
+      }
 
       await mkdir(avatarDir(), { recursive: true });
       const filename = `${userId}-${randomBytes(8).toString('hex')}.${IMAGE_EXTENSIONS[type]}`;

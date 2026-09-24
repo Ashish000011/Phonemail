@@ -10,6 +10,10 @@ import nodemailer from 'nodemailer';
 import { AppError } from '../../lib/errors.js';
 import { parseRecipient } from '../mail/recipients.js';
 import { DEMO_PRESETS, presetEmail } from './presets.js';
+import { requestMeta } from '../../lib/request-meta.js';
+import { normalizePhone } from '../addressing/index.js';
+import { handleInboundSms, ivrMenu, ivrWelcome } from '../telephony/service.js';
+import { twilioConfigured, twilioPost } from '../../providers/twilio-client.js';
 
 /**
  * The demo console's data (docs/spec/06, "Demo console"). Registered only
@@ -18,6 +22,110 @@ import { DEMO_PRESETS, presetEmail } from './presets.js';
 export async function demoRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
   const tags = ['demo'];
+
+  // ---- phone-world simulators: the same service code as the real webhooks ----
+
+  app.post(
+    '/api/demo/ivr/simulate',
+    {
+      schema: {
+        tags,
+        summary: 'Simulate a call to the IVR: returns what the caller would hear',
+        body: z.object({ phone: z.string().trim().min(3).max(32), digit: z.string().max(1) }),
+        response: {
+          200: z.object({
+            transcript: z.array(z.string()),
+            account: z.object({ address: z.string(), created: z.boolean() }).nullable(),
+          }),
+        },
+      },
+    },
+    async (request) => {
+      const welcome = ivrWelcome(false);
+      const menu = await ivrMenu({
+        callerPhone: request.body.phone,
+        digits: request.body.digit,
+        retry: false,
+        meta: requestMeta(request),
+      });
+      return {
+        transcript: [
+          ...welcome.transcript,
+          `(caller presses ${request.body.digit || 'nothing'})`,
+          ...menu.transcript,
+        ],
+        account: menu.account ?? null,
+      };
+    },
+  );
+
+  app.post(
+    '/api/demo/sms/simulate',
+    {
+      schema: {
+        tags,
+        summary: 'Simulate a text to the Twilio number or the SMSGate phone',
+        body: z.object({
+          phone: z.string().trim().min(1).max(32),
+          text: z.string().max(1000),
+          via: z.enum(['twilio', 'smsgate']),
+        }),
+        response: {
+          200: z.object({
+            outcome: z.string(),
+            reason: z.string().optional(),
+            address: z.string().optional(),
+          }),
+        },
+      },
+    },
+    async (request) =>
+      handleInboundSms(
+        request.body.via,
+        request.body.phone,
+        request.body.text,
+        requestMeta(request),
+      ),
+  );
+
+  app.post(
+    '/api/demo/ivr/call-me',
+    {
+      schema: {
+        tags,
+        summary: 'Have Twilio call a (verified) phone and play the IVR',
+        body: z.object({ phone: z.string().trim().min(3).max(32) }),
+        response: { 200: z.object({ callSid: z.string() }) },
+      },
+    },
+    async (request) => {
+      if (!twilioConfigured(env)) {
+        throw new AppError(400, 'BAD_REQUEST', 'Twilio is not configured (see the README).');
+      }
+      const phone = normalizePhone(request.body.phone, env.DEFAULT_COUNTRY);
+      const base = env.PUBLIC_BASE_URL.replace(/\/$/, '');
+      if (!base.startsWith('https://')) {
+        throw new AppError(
+          400,
+          'BAD_REQUEST',
+          'Twilio needs a public HTTPS URL. Start the tunnel first.',
+        );
+      }
+      const call = await twilioPost(
+        env,
+        `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Calls.json`,
+        {
+          To: phone.e164,
+          From: env.TWILIO_PHONE_NUMBER ?? '',
+          Url: `${base}/webhooks/twilio/voice`,
+          Method: 'POST',
+        },
+      ).catch((err: Error) => {
+        throw new AppError(502, 'BAD_REQUEST', err.message);
+      });
+      return { callSid: String(call.sid ?? '') };
+    },
+  );
 
   app.post(
     '/api/demo/send-email',

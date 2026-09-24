@@ -23,6 +23,7 @@ import { demoRoutes } from './modules/demo/routes.js';
 import { mailRoutes } from './modules/mail/routes.js';
 import { mailboxRoutes } from './modules/mailbox/routes.js';
 import { conversationRoutes } from './modules/conversations/routes.js';
+import { telephonyRoutes } from './modules/telephony/routes.js';
 
 export interface AppDeps {
   env: Env;
@@ -94,6 +95,7 @@ export async function buildApp({ env, logger, checks }: AppDeps): Promise<Fastif
   await app.register(mailRoutes);
   await app.register(mailboxRoutes);
   await app.register(conversationRoutes);
+  await app.register(telephonyRoutes);
   if (env.DEMO_MODE) await app.register(demoRoutes);
 
   return app;

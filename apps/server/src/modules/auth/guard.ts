@@ -28,8 +28,17 @@ export async function requireAuth(request: FastifyRequest): Promise<void> {
   if (!claims) throw new AppError(401, 'UNAUTHORIZED', 'Please sign in.');
   const session = await loadActiveSession(claims.sessionId, claims.userId);
   if (!session) throw new AppError(401, 'UNAUTHORIZED', 'Please sign in.');
+  // Signed in with a temporary PIN: set a real password before anything else.
+  if (
+    session.user.mustChangePassword &&
+    !ALLOWED_BEFORE_PASSWORD_CHANGE.has(request.routeOptions.url ?? '')
+  ) {
+    throw new AppError(403, 'PASSWORD_CHANGE_REQUIRED', 'Choose a new password first.');
+  }
   request.auth = claims;
 }
+
+const ALLOWED_BEFORE_PASSWORD_CHANGE = new Set(['/api/me', '/api/auth/password/change']);
 
 /** The signed-in user of a route guarded by requireAuth. */
 export function currentAuth(request: FastifyRequest): AuthContext {

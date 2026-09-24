@@ -109,8 +109,11 @@ export async function rotateSession(
 export async function loadActiveSession(
   sessionId: string,
   userId: string,
-): Promise<Session | null> {
-  const session = await db.session.findUnique({ where: { id: sessionId } });
+): Promise<(Session & { user: { mustChangePassword: boolean } }) | null> {
+  const session = await db.session.findUnique({
+    where: { id: sessionId },
+    include: { user: { select: { mustChangePassword: true } } },
+  });
   if (!session || session.userId !== userId || !isUsable(session)) return null;
   if (Date.now() - session.lastSeenAt.getTime() > LAST_SEEN_UPDATE_MS) {
     await db.session.update({ where: { id: session.id }, data: { lastSeenAt: new Date() } });

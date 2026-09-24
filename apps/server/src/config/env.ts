@@ -83,6 +83,8 @@ export const envSchema = z.object({
   SMSGATE_USERNAME: z.string().optional(),
   SMSGATE_PASSWORD: z.string().optional(),
   SMSGATE_WEBHOOK_SECRET: z.string().min(8).default(DEV_SECRETS.SMSGATE_WEBHOOK_SECRET),
+  // Optional: the "signing key" from the SMSGate app; enables signature checks on its webhooks.
+  SMSGATE_SIGNING_KEY: z.string().optional(),
   // Texts to the SMSGate phone must start with this word to sign up.
   // "*" accepts any text (only for a dedicated gateway phone).
   SMSGATE_SIGNUP_KEYWORD: z.string().default('JOIN'),

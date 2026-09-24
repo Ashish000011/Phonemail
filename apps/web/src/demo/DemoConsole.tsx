@@ -106,6 +106,7 @@ export function DemoConsole() {
         </section>
 
         <div className="flex flex-col gap-6">
+          <PhoneSimulatorPanel />
           <SendEmailPanel />
           <section aria-labelledby="users-title" className="rounded-xl bg-surface p-4 shadow-sm">
             <h2 id="users-title" className="mb-3 font-medium">
@@ -327,6 +328,186 @@ function SendEmailPanel() {
             <span className="text-brand">{t('demo.sent', { response: send.data.response })}</span>
           )}
           {send.isError && <span className="text-danger">{errorText(send.error)}</span>}
+        </p>
+      </form>
+    </section>
+  );
+}
+
+const fieldClass = 'rounded-lg border border-black/15 px-3 py-2 font-normal';
+const buttonClass =
+  'min-h-11 rounded-full bg-brand px-5 font-medium text-white disabled:opacity-50';
+
+/**
+ * The phone world without a phone: the same service code as the Twilio and
+ * SMSGate webhooks, with the call's transcript shown on screen.
+ */
+function PhoneSimulatorPanel() {
+  const { t } = useTranslation();
+  const errorText = useErrorText();
+  const [callPhone, setCallPhone] = useState('');
+  const [digit, setDigit] = useState('1');
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsText, setSmsText] = useState('JOIN');
+  const [via, setVia] = useState<'twilio' | 'smsgate'>('smsgate');
+
+  const call = useMutation({
+    mutationFn: () =>
+      api('/demo/ivr/simulate', {
+        method: 'POST',
+        body: { phone: callPhone, digit },
+        schema: z.object({
+          transcript: z.array(z.string()),
+          account: z.object({ address: z.string(), created: z.boolean() }).nullable(),
+        }),
+      }),
+  });
+  const callMe = useMutation({
+    mutationFn: () =>
+      api('/demo/ivr/call-me', {
+        method: 'POST',
+        body: { phone: callPhone },
+        schema: z.object({ callSid: z.string() }),
+      }),
+  });
+  const sms = useMutation({
+    mutationFn: () =>
+      api('/demo/sms/simulate', {
+        method: 'POST',
+        body: { phone: smsPhone, text: smsText, via },
+        schema: z.object({
+          outcome: z.string(),
+          reason: z.string().optional(),
+          address: z.string().optional(),
+        }),
+      }),
+  });
+
+  return (
+    <section aria-labelledby="phone-title" className="rounded-xl bg-surface p-4 shadow-sm">
+      <h2 id="phone-title" className="font-medium">
+        {t('demo.phoneTitle')}
+      </h2>
+      <p className="mt-1 mb-3 text-sm text-text-muted">{t('demo.phoneHint')}</p>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          call.mutate();
+        }}
+        className="flex flex-col gap-3"
+      >
+        <h3 className="text-sm font-medium">{t('demo.ivrTitle')}</h3>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1 text-sm">
+            {t('demo.callerNumber')}
+            <input
+              value={callPhone}
+              onChange={(e) => setCallPhone(e.target.value)}
+              placeholder="98765 43210"
+              inputMode="tel"
+              className={fieldClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t('demo.keyPressed')}
+            <select value={digit} onChange={(e) => setDigit(e.target.value)} className={fieldClass}>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="">{t('demo.noKey')}</option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            disabled={call.isPending || !callPhone.trim()}
+            className={buttonClass}
+          >
+            {t('demo.simulateCall')}
+          </button>
+          <button
+            type="button"
+            disabled={callMe.isPending || !callPhone.trim()}
+            onClick={() => callMe.mutate()}
+            className="min-h-11 rounded-full border border-brand px-4 font-medium text-brand disabled:opacity-50"
+          >
+            {t('demo.callMe')}
+          </button>
+        </div>
+        {call.data && (
+          <ol
+            aria-label={t('demo.transcript')}
+            className="flex flex-col gap-2 rounded-lg bg-app-bg p-3 text-sm"
+          >
+            {call.data.transcript.map((line, i) => (
+              <li key={i} className={line.startsWith('(') ? 'text-text-muted italic' : ''}>
+                {line}
+              </li>
+            ))}
+          </ol>
+        )}
+        <p aria-live="polite" className="text-sm">
+          {call.isError && <span className="text-danger">{errorText(call.error)}</span>}
+          {callMe.isSuccess && <span className="text-brand">{t('demo.calling')}</span>}
+          {callMe.isError && <span className="text-danger">{errorText(callMe.error)}</span>}
+        </p>
+      </form>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          sms.mutate();
+        }}
+        className="mt-4 flex flex-col gap-3 border-t border-black/5 pt-4"
+      >
+        <h3 className="text-sm font-medium">{t('demo.smsTitle')}</h3>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1 text-sm">
+            {t('demo.senderNumber')}
+            <input
+              value={smsPhone}
+              onChange={(e) => setSmsPhone(e.target.value)}
+              placeholder="98765 43210"
+              inputMode="tel"
+              className={fieldClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t('demo.smsText')}
+            <input
+              value={smsText}
+              onChange={(e) => setSmsText(e.target.value)}
+              className={fieldClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t('demo.smsVia')}
+            <select
+              value={via}
+              onChange={(e) => setVia(e.target.value as 'twilio' | 'smsgate')}
+              className={fieldClass}
+            >
+              <option value="smsgate">{t('demo.viaSmsgate')}</option>
+              <option value="twilio">{t('demo.viaTwilio')}</option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            disabled={sms.isPending || !smsPhone.trim()}
+            className={buttonClass}
+          >
+            {t('demo.simulateSms')}
+          </button>
+        </div>
+        <p aria-live="polite" className="text-sm">
+          {sms.data && (
+            <span className={sms.data.outcome === 'ignored' ? 'text-text-muted' : 'text-brand'}>
+              {t(`demo.smsOutcome.${sms.data.outcome}`, {
+                address: sms.data.address,
+                reason: sms.data.reason,
+              })}
+            </span>
+          )}
+          {sms.isError && <span className="text-danger">{errorText(sms.error)}</span>}
         </p>
       </form>
     </section>

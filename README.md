@@ -56,6 +56,65 @@ Stop it with `docker compose down` (add `-v` to also delete the data).
 | mailpit | catches mail sent to outside addresses in demo mode |
 | cloudflared | optional public HTTPS URL (`--profile public`) |
 
+## Enable real calls and SMS (optional)
+
+Everything works without this: in demo mode, codes and SMS appear in the demo
+console, and the console simulates calls and texts. For the real thing:
+
+### 1. A public HTTPS address (for Twilio, SMSGate and your phone)
+
+```bash
+docker compose --profile public up -d
+./scripts/public-url.sh
+```
+
+`public-url.sh` finds the `https://….trycloudflare.com` address, saves it as
+`PUBLIC_BASE_URL` in `.env`, restarts the services, and (when configured)
+points Twilio and SMSGate at it. The address changes every time the tunnel
+restarts; just run the script again. Open `<that address>/m` on your phone.
+
+### 2. Twilio (phone call sign-up, SMS alerts)
+
+1. Sign up for a free trial at twilio.com and verify your own mobile number
+   (trial accounts can only call and text verified numbers, up to 5).
+2. Get a phone number. Choose a **US local number**, not toll-free: US
+   toll-free numbers can't be dialled from India.
+3. Put these in `.env` (copy `.env.example`):
+   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`.
+4. Run `./scripts/public-url.sh` again: it sets the number's call and SMS
+   webhooks for you. (By hand: in the Twilio console, set "A call comes in" to
+   `<public address>/webhooks/twilio/voice` and "A message comes in" to
+   `<public address>/webhooks/twilio/sms`, both HTTP POST.)
+5. Call the number and press 1, or use **Call me** in the demo console to
+   have Twilio call you (no international call charges). Trial calls start
+   with a short Twilio notice.
+
+Trial limits: Twilio's trial can only send its ready-made SMS templates, so
+alerts arrive as a Twilio template (the organizers allow this) and sign-in
+codes don't travel through Twilio. That's what SMSGate is for.
+
+### 3. SMSGate (your Android phone as the SMS gateway: real codes, exact alert text)
+
+1. Install **SMS Gateway for Android** (sms-gate.app) on an Android phone
+   with a SIM, open it, turn on **Cloud server**, and note the username and
+   password it shows. In your messaging app, turn RCS/chat features off so
+   texts arrive as plain SMS. Allow the app to run in the background.
+2. Put `SMSGATE_USERNAME` and `SMSGATE_PASSWORD` in `.env`, and run
+   `./scripts/public-url.sh`. It registers the webhook for incoming texts.
+3. Now sign-in codes arrive by real SMS (Chrome on Android fills them in
+   automatically), SMS alerts use the task's exact text, and texting
+   **JOIN** to the phone creates an account.
+
+Using your personal phone is fine. Texts go out from your SIM (normal SMS
+charges and daily limits apply), and while the webhook is registered the
+phone forwards every text it receives. PhoneMail only acts on texts that start
+with JOIN (or HELP) from real phone numbers, and never stores the others.
+Remove the webhook after the demo:
+
+```bash
+docker compose exec api node dist/scripts/smsgate-webhook.js unregister
+```
+
 ## Local development
 
 Requires Node.js 24.

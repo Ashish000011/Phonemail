@@ -10,6 +10,7 @@ import { closeQueues, getQueue, QUEUES } from '../lib/queue.js';
 import { relayGaveUp, relayMessage, type RelayJob } from '../modules/mail/relay.js';
 import { purgeOldTrash, purgeUnsentUploads } from '../modules/mailbox/service.js';
 import { processAlert, type AlertJob } from '../modules/notifications/alerts.js';
+import { sendSignupSms, type SignupSmsJob } from '../modules/telephony/service.js';
 import { onShutdown } from './shutdown.js';
 
 // Background jobs (BullMQ): relaying mail to other domains, housekeeping, and
@@ -45,6 +46,12 @@ const relay = new Worker<RelayJob>(
 );
 
 // SMS alerts for people without the mobile app (the rule is re-checked here).
+// Replies to phone-call and SMS sign-ups (confirmation texts, HELP answers).
+const signup = new Worker<SignupSmsJob>(QUEUES.signup, (job) => sendSignupSms(job.data), {
+  connection,
+  concurrency: 5,
+});
+
 const alerts = new Worker<AlertJob>(QUEUES.notifications, (job) => processAlert(job.data), {
   connection,
   concurrency: 5,
@@ -62,7 +69,7 @@ await getQueue(QUEUES.maintenance).upsertJobScheduler(
   { name: 'purge-uploads' },
 );
 
-for (const worker of [maintenance, relay, alerts]) {
+for (const worker of [maintenance, relay, alerts, signup]) {
   worker.on('ready', () => logger.info({ queue: worker.name }, 'worker ready'));
   worker.on('completed', (job: Job, result: unknown) =>
     logger.info({ queue: worker.name, job: job.name, id: job.id, result }, 'job done'),
@@ -96,7 +103,7 @@ const heartbeatTimer = setInterval(heartbeat, 10_000);
 
 onShutdown(logger, async () => {
   clearInterval(heartbeatTimer);
-  await Promise.all([maintenance.close(), relay.close(), alerts.close()]);
+  await Promise.all([maintenance.close(), relay.close(), alerts.close(), signup.close()]);
   await closeQueues();
   connection.disconnect();
   await db.$disconnect();

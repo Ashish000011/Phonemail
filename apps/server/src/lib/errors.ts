@@ -37,6 +37,9 @@ export function errorHandler(
       .status(400)
       .send(errorBody('VALIDATION_FAILED', 'Some fields are invalid.', fastifyError.validation));
   }
+  if (fastifyError.statusCode === 413) {
+    return reply.status(413).send(errorBody('FILE_TOO_LARGE', 'That file is too large.'));
+  }
   if (fastifyError.statusCode === 429) {
     return reply.status(429).send(errorBody('RATE_LIMITED', 'Too many requests. Try again soon.'));
   }

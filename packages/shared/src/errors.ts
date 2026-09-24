@@ -5,6 +5,7 @@ import { z } from 'zod';
  * { error: { code, message, details? } } and the UIs translate the code.
  */
 export const ERROR_CODES = [
+  // generic
   'BAD_REQUEST',
   'VALIDATION_FAILED',
   'UNAUTHORIZED',
@@ -13,6 +14,32 @@ export const ERROR_CODES = [
   'CSRF_HEADER_MISSING',
   'RATE_LIMITED',
   'INTERNAL',
+  // phone numbers and accounts
+  'INVALID_PHONE',
+  'ALREADY_REGISTERED',
+  // one-time codes
+  'OTP_EXPIRED',
+  'OTP_INVALID',
+  'OTP_TOO_MANY_ATTEMPTS',
+  'OTP_UNAVAILABLE',
+  'SMS_UNAVAILABLE',
+  // passwords and sessions
+  'PASSWORD_LOGIN_DISABLED',
+  'PASSWORD_TOO_SHORT',
+  'PASSWORD_WRONG',
+  'PASSWORD_NOT_SET',
+  'SESSION_EXPIRED',
+  'SESSION_REVOKED',
+  'REFRESH_RACE',
+  // aliases
+  'ALIAS_INVALID',
+  'ALIAS_RESERVED',
+  'ALIAS_TAKEN',
+  'ALIAS_HELD',
+  'ALIAS_LIMIT',
+  // files
+  'FILE_INVALID',
+  'FILE_TOO_LARGE',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

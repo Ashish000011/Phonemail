@@ -1,0 +1,26 @@
+import { hash, verify } from '@node-rs/argon2';
+import { MIN_PASSWORD_LENGTH } from '@phonemail/shared';
+import { AppError } from '../../lib/errors.js';
+
+/**
+ * Password fallback (only when OTP can't be used, or AUTH_MODE says so).
+ * argon2id (the library default) is slow on purpose, so guessing is expensive.
+ */
+export async function hashPassword(password: string): Promise<string> {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw new AppError(
+      400,
+      'PASSWORD_TOO_SHORT',
+      `Use at least ${MIN_PASSWORD_LENGTH} characters.`,
+    );
+  }
+  return hash(password);
+}
+
+export async function verifyPassword(passwordHash: string, password: string): Promise<boolean> {
+  try {
+    return await verify(passwordHash, password);
+  } catch {
+    return false;
+  }
+}

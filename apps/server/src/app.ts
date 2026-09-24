@@ -1,10 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify';
 import helmet from '@fastify/helmet';
+import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
+import {
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from 'fastify-type-provider-zod';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from '@phonemail/shared';
 import type { Env } from './config/env.js';
+import { APP_VERSION } from './config/constants.js';
 import { AppError, errorBody, errorHandler } from './lib/errors.js';
 import { registerSystemRoutes, type HealthChecks } from './modules/system/routes.js';
+import { authRoutes } from './modules/auth/routes.js';
+import { userRoutes } from './modules/users/routes.js';
+import { aliasRoutes } from './modules/aliases/routes.js';
+import { portalRoutes } from './modules/portal/routes.js';
+import { demoRoutes } from './modules/demo/routes.js';
 
 export interface AppDeps {
   env: Env;
@@ -30,8 +45,28 @@ export async function buildApp({ env, logger, checks }: AppDeps): Promise<Fastif
     bodyLimit: 1024 * 1024,
   });
 
+  // Every route validates its input with the zod schema it declares, and the
+  // same schemas generate the OpenAPI docs at /api/docs.
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
   // Security headers on API responses. nginx adds the page headers (CSP etc.) for the SPA.
   await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(cookie);
+  await app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024, files: 10 } });
+
+  await app.register(swagger, {
+    openapi: {
+      info: {
+        title: 'PhoneMail API',
+        description:
+          'Email where your phone number is your address. State-changing calls need the header X-Requested-With: phonemail.',
+        version: APP_VERSION,
+      },
+    },
+    transform: jsonSchemaTransform,
+  });
+  await app.register(swaggerUi, { routePrefix: '/api/docs' });
 
   // CSRF defence: browsers can't add a custom header on a cross-site form post,
   // so every state-changing API call must carry it. Webhooks live under /webhooks.
@@ -42,12 +77,18 @@ export async function buildApp({ env, logger, checks }: AppDeps): Promise<Fastif
     }
   });
 
+  app.decorateRequest('auth', null);
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler((_request, reply) =>
     reply.status(404).send(errorBody('NOT_FOUND', 'Not found.')),
   );
 
   registerSystemRoutes(app, env, checks);
+  await app.register(authRoutes);
+  await app.register(userRoutes);
+  await app.register(aliasRoutes);
+  await app.register(portalRoutes);
+  if (env.DEMO_MODE) await app.register(demoRoutes);
 
   return app;
 }

@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "PhoneMail",
+    "tagline": "Your phone number is your email address."
+  },
+  "placeholder": {
+    "comingSoon": "This screen is being built.",
+    "server": "Server",
+    "online": "Connected · {{domain}}",
+    "offline": "Can't reach the server",
+    "checking": "Checking…",
+    "demoMode": "Demo mode"
+  },
+  "routes": {
+    "mobile": "Chats",
+    "mail": "Inbox",
+    "login": "Sign in",
+    "register": "Create a PhoneMail address",
+    "demo": "Demo console",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "notFound": "Page not found"
+  },
+  "nav": {
+    "switchToMobile": "Switch to mobile view",
+    "switchToDesktop": "Switch to desktop view",
+    "home": "Go home"
+  },
+  "language": {
+    "label": "Language"
+  }
+}

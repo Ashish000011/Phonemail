@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "PhoneMail",
+    "tagline": "आपका फ़ोन नंबर ही आपका ईमेल पता है।"
+  },
+  "placeholder": {
+    "comingSoon": "यह स्क्रीन अभी बन रही है।",
+    "server": "सर्वर",
+    "online": "जुड़ा हुआ · {{domain}}",
+    "offline": "सर्वर से संपर्क नहीं हो पा रहा",
+    "checking": "जाँच हो रही है…",
+    "demoMode": "डेमो मोड"
+  },
+  "routes": {
+    "mobile": "चैट",
+    "mail": "इनबॉक्स",
+    "login": "साइन इन करें",
+    "register": "PhoneMail पता बनाएँ",
+    "demo": "डेमो कंसोल",
+    "terms": "सेवा की शर्तें",
+    "privacy": "गोपनीयता नीति",
+    "notFound": "पेज नहीं मिला"
+  },
+  "nav": {
+    "switchToMobile": "मोबाइल व्यू पर जाएँ",
+    "switchToDesktop": "डेस्कटॉप व्यू पर जाएँ",
+    "home": "होम पर जाएँ"
+  },
+  "language": {
+    "label": "भाषा"
+  }
+}

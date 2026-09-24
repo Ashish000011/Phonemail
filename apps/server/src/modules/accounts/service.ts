@@ -3,6 +3,7 @@ import { env } from '../../config/env.js';
 import { db, isUniqueViolation } from '../../lib/db.js';
 import type { RequestMeta } from '../../lib/request-meta.js';
 import { normalizePhone } from '../addressing/index.js';
+import { announceUsersChanged } from '../../providers/sms/log.js';
 import { recordAuthEvent } from './auth-events.js';
 
 export interface CreateAccountInput {
@@ -77,6 +78,7 @@ export async function createAccount(
       console.error('account-created listener failed', err);
     }
   }
+  await announceUsersChanged();
   return { user, created: true };
 }
 

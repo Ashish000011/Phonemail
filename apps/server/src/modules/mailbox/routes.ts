@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
+  conversationItemSchema,
   entryIdsBodySchema,
   folderSchema,
   mailboxPageSchema,
@@ -13,6 +14,7 @@ import {
 } from '@phonemail/shared';
 import { currentAuth, requireAuth } from '../auth/guard.js';
 import { searchMessages, startChatFor } from './search.js';
+import { searchConversations } from '../conversations/service.js';
 import {
   deleteForever,
   emptyTrash,
@@ -167,6 +169,7 @@ export async function mailboxRoutes(fastify: FastifyInstance) {
         querystring: z.object({ q: z.string().trim().min(1).max(200) }),
         response: {
           200: z.object({
+            conversations: z.array(conversationItemSchema),
             messages: z.array(searchMessageHitSchema),
             startChat: startChatSchema.nullable(),
           }),
@@ -175,11 +178,12 @@ export async function mailboxRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { userId } = currentAuth(request);
-      const [messages, startChat] = await Promise.all([
+      const [conversations, messages, startChat] = await Promise.all([
+        searchConversations(userId, request.query.q),
         searchMessages(userId, request.query.q),
         startChatFor(request.query.q),
       ]);
-      return { messages, startChat };
+      return { conversations, messages, startChat };
     },
   );
 }

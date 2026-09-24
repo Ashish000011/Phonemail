@@ -79,6 +79,21 @@
     "linkMailpit": "Mailpit (बाहर जाने वाले ईमेल)",
     "linkApiDocs": "API दस्तावेज़",
     "linkHealth": "हेल्थ चेक",
+    "live": "लाइव",
+    "connecting": "जुड़ रहा है…",
+    "sendTitle": "PhoneMail में एक ईमेल भेजें",
+    "sendHint": "यह असली SMTP (पोर्ट 2525) से किसी बाहरी पते से आता है, ठीक वैसे जैसे Gmail से आता।",
+    "sendTo": "प्रति (फ़ोन नंबर या पता)",
+    "presetLabel": "ईमेल",
+    "sendButton": "SMTP से भेजें",
+    "sending": "भेजा जा रहा है…",
+    "sent": "SMTP सर्वर ने स्वीकार किया: {{response}}",
+    "preset": {
+      "plain": "साधारण ईमेल",
+      "long": "लंबा ईमेल",
+      "attachment": "तस्वीर और PDF",
+      "malicious": "खतरनाक HTML"
+    },
     "purpose": {
       "otp": "कोड",
       "notification": "अलर्ट",

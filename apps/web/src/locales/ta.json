@@ -79,6 +79,21 @@
     "linkMailpit": "Mailpit (வெளிச்செல்லும் மின்னஞ்சல்)",
     "linkApiDocs": "API ஆவணங்கள்",
     "linkHealth": "நிலை சரிபார்ப்பு",
+    "live": "நேரலை",
+    "connecting": "இணைக்கிறது…",
+    "sendTitle": "PhoneMail-க்கு ஒரு மின்னஞ்சல் அனுப்பு",
+    "sendHint": "இது உண்மையான SMTP (போர்ட் 2525) வழியாக வெளி முகவரியிலிருந்து வருகிறது, Gmail-இலிருந்து வருவது போலவே.",
+    "sendTo": "பெறுநர் (தொலைபேசி எண் அல்லது முகவரி)",
+    "presetLabel": "மின்னஞ்சல்",
+    "sendButton": "SMTP வழியாக அனுப்பு",
+    "sending": "அனுப்புகிறது…",
+    "sent": "SMTP சர்வர் ஏற்றுக்கொண்டது: {{response}}",
+    "preset": {
+      "plain": "சாதாரண மின்னஞ்சல்",
+      "long": "நீண்ட மின்னஞ்சல்",
+      "attachment": "படம் மற்றும் PDF",
+      "malicious": "தீங்கான HTML"
+    },
     "purpose": {
       "otp": "குறியீடு",
       "notification": "அறிவிப்பு",

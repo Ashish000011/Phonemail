@@ -9,14 +9,13 @@ import { redis } from './redis.js';
 export const EVENTS_CHANNEL = 'events';
 
 export interface AppEvent {
-  /** Who should hear about it */
+  /** Who should hear about it (empty for demo-console events) */
   userIds: string[];
   type: string;
   payload: Record<string, unknown>;
 }
 
 export async function publishEvent(event: AppEvent): Promise<void> {
-  if (event.userIds.length === 0) return;
   try {
     await redis.publish(EVENTS_CHANNEL, JSON.stringify(event));
   } catch (err) {

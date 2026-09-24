@@ -42,6 +42,8 @@ export interface IngestInput {
   system?: boolean;
   /** Arrival time; only seed data sets this (to spread demo mail over a week). */
   receivedAt?: Date;
+  /** Seed data: store it, but no live events, alerts or relay jobs. */
+  quiet?: boolean;
 }
 
 export interface IngestResult {
@@ -60,6 +62,8 @@ export interface DeliveredEntry {
   direction: Direction;
   isSpam: boolean;
   senderUserId: string | null;
+  /** Welcome mail and bounce notices (these never trigger SMS alerts). */
+  system: boolean;
 }
 
 type DeliveredListener = (entry: DeliveredEntry) => Promise<void>;
@@ -326,6 +330,7 @@ export async function ingestMessage(input: IngestInput, attempt = 0): Promise<In
             direction: target.direction,
             isSpam: spam,
             senderUserId,
+            system: input.system ?? false,
           });
         }
 
@@ -351,6 +356,14 @@ export async function ingestMessage(input: IngestInput, attempt = 0): Promise<In
   }
 
   // ---- after commit ---------------------------------------------------------------------------
+  const result = {
+    messageId: outcome.messageId,
+    duplicate: Boolean(existing),
+    deliveredUserIds: outcome.delivered.map((d) => d.userId),
+    externalRecipients,
+  };
+  if (input.quiet) return result;
+
   for (const entry of outcome.delivered) {
     await publishEvent({ userIds: [entry.userId], type: 'mail.delivered', payload: { ...entry } });
     for (const listener of deliveredListeners) {
@@ -371,13 +384,7 @@ export async function ingestMessage(input: IngestInput, attempt = 0): Promise<In
       senderUserId,
     });
   }
-
-  return {
-    messageId: outcome.messageId,
-    duplicate: Boolean(existing),
-    deliveredUserIds: outcome.delivered.map((d) => d.userId),
-    externalRecipients,
-  };
+  return result;
 }
 
 /** One chat per owner per set of people: find it, or create it with its participants. */

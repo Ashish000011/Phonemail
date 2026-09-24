@@ -3,6 +3,7 @@ import { db } from '../../lib/db.js';
 import { AppError } from '../../lib/errors.js';
 import type { RequestMeta } from '../../lib/request-meta.js';
 import { recordAuthEvent } from '../accounts/auth-events.js';
+import { announceUsersChanged } from '../../providers/sms/log.js';
 import { REFRESH_TOKEN_TTL_DAYS, hashToken, newRefreshToken, signAccessToken } from './tokens.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -46,6 +47,8 @@ export async function createSession(
     },
   });
   await recordAuthEvent({ type: 'login', userId, channel: clientType, ...meta });
+  // A mobile sign-in switches SMS alerts off: the demo console shows that live.
+  if (clientType !== 'web') await announceUsersChanged();
   return tokensFor(session, refreshToken);
 }
 
@@ -124,6 +127,7 @@ export async function revokeSession(sessionId: string, userId: string): Promise<
     where: { id: sessionId, userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+  if (count > 0) await announceUsersChanged();
   return count > 0;
 }
 
@@ -133,6 +137,7 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
     where: { userId, revokedAt: null, id: { not: keepSessionId } },
     data: { revokedAt: new Date() },
   });
+  if (count > 0) await announceUsersChanged();
   return count;
 }
 

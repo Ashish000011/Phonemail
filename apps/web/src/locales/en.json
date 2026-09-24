@@ -79,6 +79,21 @@
     "linkMailpit": "Mailpit (outgoing mail)",
     "linkApiDocs": "API docs",
     "linkHealth": "Health check",
+    "live": "Live",
+    "connecting": "Connecting…",
+    "sendTitle": "Send an email into PhoneMail",
+    "sendHint": "It travels over real SMTP (port 2525) from an outside address, the way mail from Gmail would.",
+    "sendTo": "To (phone number or address)",
+    "presetLabel": "Email",
+    "sendButton": "Send over SMTP",
+    "sending": "Sending…",
+    "sent": "Accepted by the SMTP server: {{response}}",
+    "preset": {
+      "plain": "Plain email",
+      "long": "Long email",
+      "attachment": "Image and PDF",
+      "malicious": "Malicious HTML"
+    },
     "purpose": {
       "otp": "Code",
       "notification": "Alert",

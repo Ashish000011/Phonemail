@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { env } from '../config/env.js';
 import { createLogger } from '../lib/logger.js';
 import { db } from '../lib/db.js';
+import { seedDemoData } from '../seed/demo.js';
 
 // One-shot container: apply database migrations, then (demo mode only) load
 // seed data. Safe to run on every `docker compose up`: both steps are idempotent.
@@ -35,13 +36,8 @@ async function seed() {
     logger.info('demo mode off, skipping seed');
     return;
   }
-  // Demo users and chats arrive with Phase 3; for now just record when we ran.
-  await db.appMeta.upsert({
-    where: { key: 'last_migrate_run' },
-    create: { key: 'last_migrate_run', value: new Date().toISOString() },
-    update: { value: new Date().toISOString() },
-  });
-  logger.info('seed done');
+  // Priya, Arjun, Meera and their chats; skipped if they're already there.
+  await seedDemoData((msg) => logger.info(msg));
 }
 
 try {

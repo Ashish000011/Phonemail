@@ -5,12 +5,16 @@ import { db } from '../lib/db.js';
 import { redis } from '../lib/redis.js';
 import { closeQueues } from '../lib/queue.js';
 import { createSmtpServer } from '../modules/smtp/server.js';
+import { registerAlertHook } from '../modules/notifications/alerts.js';
 import { onShutdown } from './shutdown.js';
 
 // The SMTP server for @MAIL_DOMAIN: other mail servers deliver here, and the
 // api submits every email its users send.
 const logger = createLogger('smtp');
 logProviderSummary(logger, env);
+
+// Every email stored here may need an SMS alert for someone without the app.
+registerAlertHook();
 
 const server = createSmtpServer(logger);
 server.on('error', (err) => logger.error({ err }, 'smtp server error'));

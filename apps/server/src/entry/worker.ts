@@ -9,6 +9,7 @@ import { redis, createRedis } from '../lib/redis.js';
 import { closeQueues, getQueue, QUEUES } from '../lib/queue.js';
 import { relayGaveUp, relayMessage, type RelayJob } from '../modules/mail/relay.js';
 import { purgeOldTrash, purgeUnsentUploads } from '../modules/mailbox/service.js';
+import { processAlert, type AlertJob } from '../modules/notifications/alerts.js';
 import { onShutdown } from './shutdown.js';
 
 // Background jobs (BullMQ): relaying mail to other domains, housekeeping, and
@@ -43,6 +44,12 @@ const relay = new Worker<RelayJob>(
   { connection, concurrency: 5 },
 );
 
+// SMS alerts for people without the mobile app (the rule is re-checked here).
+const alerts = new Worker<AlertJob>(QUEUES.notifications, (job) => processAlert(job.data), {
+  connection,
+  concurrency: 5,
+});
+
 // The same schedule is set on every start; upsert keeps just one copy of each.
 await getQueue(QUEUES.maintenance).upsertJobScheduler(
   'purge-trash',
@@ -55,7 +62,7 @@ await getQueue(QUEUES.maintenance).upsertJobScheduler(
   { name: 'purge-uploads' },
 );
 
-for (const worker of [maintenance, relay]) {
+for (const worker of [maintenance, relay, alerts]) {
   worker.on('ready', () => logger.info({ queue: worker.name }, 'worker ready'));
   worker.on('completed', (job: Job, result: unknown) =>
     logger.info({ queue: worker.name, job: job.name, id: job.id, result }, 'job done'),
@@ -89,7 +96,7 @@ const heartbeatTimer = setInterval(heartbeat, 10_000);
 
 onShutdown(logger, async () => {
   clearInterval(heartbeatTimer);
-  await Promise.all([maintenance.close(), relay.close()]);
+  await Promise.all([maintenance.close(), relay.close(), alerts.close()]);
   await closeQueues();
   connection.disconnect();
   await db.$disconnect();

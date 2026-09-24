@@ -1,8 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { demoSmsSchema, demoUserSchema, type DemoSms, type DemoUser } from '@phonemail/shared';
+import {
+  demoSmsSchema,
+  demoUserSchema,
+  SOCKET_EVENTS,
+  type DemoSms,
+  type DemoUser,
+} from '@phonemail/shared';
 import { api } from '../shared/api';
+import { useErrorText } from '../shared/errors';
+import { createDemoSocket } from '../shared/socket';
 import { DemoCodeBanner } from '../shared/DemoCodeBanner';
 import { LanguageSelect } from '../shared/LanguageSelect';
 import { Logo } from '../shared/Logo';
@@ -12,27 +21,48 @@ import { useDocumentTitle } from '../shared/useDocumentTitle';
 
 /**
  * The judges' toolbox (docs/spec/06, "Demo console"): every SMS and code the
- * app "sent", and every account with its SMS-alert status. v1 polls every
- * couple of seconds; Phase 3 switches it to live Socket.IO updates.
+ * app "sent", every account with its SMS-alert status, and a way to send
+ * email in from outside. Updates arrive live over Socket.IO; a slow poll is
+ * the safety net if the socket drops.
  */
 export function DemoConsole() {
   const { t } = useTranslation();
   const config = useConfig();
+  const queryClient = useQueryClient();
   useDocumentTitle(t('routes.demo'));
   const demoMode = config.data?.demoMode === true;
+  const [live, setLive] = useState(false);
 
   const sms = useQuery({
     queryKey: ['demo', 'sms'],
     queryFn: () => api('/demo/sms?limit=50', { schema: z.array(demoSmsSchema) }),
     enabled: demoMode,
-    refetchInterval: 2000,
+    refetchInterval: 15_000,
   });
   const users = useQuery({
     queryKey: ['demo', 'users'],
     queryFn: () => api('/demo/users', { schema: z.array(demoUserSchema) }),
     enabled: demoMode,
-    refetchInterval: 3000,
+    refetchInterval: 15_000,
   });
+
+  useEffect(() => {
+    if (!demoMode) return;
+    const socket = createDemoSocket();
+    socket.on('connect', () => setLive(true));
+    socket.on('disconnect', () => setLive(false));
+    socket.on(SOCKET_EVENTS.demoSms, (item: DemoSms) => {
+      queryClient.setQueryData<DemoSms[]>(['demo', 'sms'], (old = []) =>
+        [item, ...old.filter((o) => o.id !== item.id)].slice(0, 50),
+      );
+    });
+    socket.on(SOCKET_EVENTS.demoUsers, () => {
+      void queryClient.invalidateQueries({ queryKey: ['demo', 'users'] });
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [demoMode, queryClient]);
 
   if (config.data && !demoMode) {
     return <p className="p-8 text-center text-text-muted">{t('demo.off')}</p>;
@@ -53,9 +83,18 @@ export function DemoConsole() {
 
       <main className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <section aria-labelledby="feed-title" className="rounded-xl bg-surface p-4 shadow-sm">
-          <h2 id="feed-title" className="mb-3 font-medium">
-            {t('demo.feedTitle')}
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="feed-title" className="font-medium">
+              {t('demo.feedTitle')}
+            </h2>
+            <span className="flex items-center gap-1.5 text-xs text-text-muted">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 rounded-full ${live ? 'bg-brand' : 'bg-black/20'}`}
+              />
+              {live ? t('demo.live') : t('demo.connecting')}
+            </span>
+          </div>
           {sms.data?.length === 0 && (
             <p className="text-sm text-text-muted">{t('demo.feedEmpty')}</p>
           )}
@@ -67,6 +106,7 @@ export function DemoConsole() {
         </section>
 
         <div className="flex flex-col gap-6">
+          <SendEmailPanel />
           <section aria-labelledby="users-title" className="rounded-xl bg-surface p-4 shadow-sm">
             <h2 id="users-title" className="mb-3 font-medium">
               {t('demo.usersTitle')}
@@ -212,5 +252,83 @@ function UsersTable({ users }: { users: DemoUser[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+const PRESETS = ['plain', 'long', 'attachment', 'malicious'] as const;
+type Preset = (typeof PRESETS)[number];
+
+/** "Send an email into PhoneMail" over real SMTP, from an outside address. */
+function SendEmailPanel() {
+  const { t } = useTranslation();
+  const errorText = useErrorText();
+  const [to, setTo] = useState('9000000002');
+  const [preset, setPreset] = useState<Preset>('plain');
+
+  const send = useMutation({
+    mutationFn: () =>
+      api('/demo/send-email', {
+        method: 'POST',
+        body: { to, preset },
+        schema: z.object({ ok: z.literal(true), response: z.string() }),
+      }),
+  });
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    send.mutate();
+  }
+
+  return (
+    <section aria-labelledby="send-title" className="rounded-xl bg-surface p-4 shadow-sm">
+      <h2 id="send-title" className="font-medium">
+        {t('demo.sendTitle')}
+      </h2>
+      <p className="mt-1 mb-3 text-sm text-text-muted">{t('demo.sendHint')}</p>
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          {t('demo.sendTo')}
+          <input
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="rounded-lg border border-black/15 px-3 py-2 font-normal"
+          />
+        </label>
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="mb-1 text-sm font-medium">{t('demo.presetLabel')}</legend>
+          {PRESETS.map((p) => (
+            <label
+              key={p}
+              className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm ${
+                preset === p ? 'border-brand bg-brand/10 text-brand' : 'border-black/15'
+              }`}
+            >
+              <input
+                type="radio"
+                name="preset"
+                value={p}
+                checked={preset === p}
+                onChange={() => setPreset(p)}
+                className="sr-only"
+              />
+              {t(`demo.preset.${p}`)}
+            </label>
+          ))}
+        </fieldset>
+        <button
+          type="submit"
+          disabled={send.isPending || !to.trim()}
+          className="min-h-11 self-start rounded-full bg-brand px-5 font-medium text-white disabled:opacity-50"
+        >
+          {send.isPending ? t('demo.sending') : t('demo.sendButton')}
+        </button>
+        <p aria-live="polite" className="text-sm">
+          {send.isSuccess && (
+            <span className="text-brand">{t('demo.sent', { response: send.data.response })}</span>
+          )}
+          {send.isError && <span className="text-danger">{errorText(send.error)}</span>}
+        </p>
+      </form>
+    </section>
   );
 }

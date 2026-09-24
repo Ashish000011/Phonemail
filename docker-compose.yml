@@ -14,6 +14,8 @@ name: phonemail
 # the defaults in apps/server/src/config/env.ts.
 x-server-env: &server-env
   NODE_ENV: production
+  # Demo data times ("today 9:10") and log times use this zone.
+  TZ: ${TZ:-Asia/Kolkata}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   DATA_DIR: /data
   MAIL_DOMAIN: ${MAIL_DOMAIN:-phonemail.com}

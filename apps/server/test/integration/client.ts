@@ -23,6 +23,7 @@ export class TestClient {
   private cookies = new Map<string, string>();
   address = '';
   userId = '';
+  phoneE164 = '';
 
   async request<T = unknown>(
     method: string,
@@ -53,7 +54,7 @@ export class TestClient {
     const phone = randomPhone();
     const sent = await c.request<{ demoCode?: string }>('POST', '/api/auth/otp/request', { phone });
     if (!sent.data?.demoCode) throw new Error(`no demo code: ${JSON.stringify(sent)}`);
-    const verified = await c.request<{ user: { id: string; address: string } }>(
+    const verified = await c.request<{ user: { id: string; address: string; phoneE164: string } }>(
       'POST',
       '/api/auth/otp/verify',
       { phone, code: sent.data.demoCode, client },
@@ -61,6 +62,7 @@ export class TestClient {
     if (verified.status !== 200) throw new Error(`sign-in failed: ${JSON.stringify(verified)}`);
     c.address = verified.data.user.address;
     c.userId = verified.data.user.id;
+    c.phoneE164 = verified.data.user.phoneE164;
     return c;
   }
 }

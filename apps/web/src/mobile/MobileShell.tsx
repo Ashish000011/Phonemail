@@ -1,17 +1,12 @@
 import { useEffect } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
-import { conversationItemSchema } from '@phonemail/shared';
-import { api } from '../shared/api';
 import { Logo } from '../shared/Logo';
 import { useMe } from '../shared/session';
 import { useDocumentTitle } from '../shared/useDocumentTitle';
 import { HomeScreen } from './home/HomeScreen';
 import { LiveRegion, useRealtime } from './live';
-import { IconButton } from './ui/IconButton';
-import { TopBar } from './ui/TopBar';
+import { PasswordForm } from './settings/PasswordForm';
 import { ToastHost } from './ui/toast';
 
 /**
@@ -51,7 +46,10 @@ function Splash() {
   );
 }
 
-/** Screens that need a signed-in user send everyone else to onboarding. */
+/**
+ * Screens that need a signed-in user send everyone else to onboarding. Someone
+ * signed in with a temporary PIN sees only "Choose a password" until they do.
+ */
 export function RequireUser({
   children,
 }: {
@@ -61,6 +59,7 @@ export function RequireUser({
   const location = useLocation();
   if (me.isPending) return <Splash />;
   if (!me.data) return <Navigate to={`/m/welcome${location.search}`} replace />;
+  if (me.data.mustChangePassword) return <PasswordForm me={me.data} forced />;
   return <>{children(me.data)}</>;
 }
 
@@ -68,32 +67,4 @@ export function HomeRoute() {
   const { t } = useTranslation();
   useDocumentTitle(t('routes.mobile'));
   return <RequireUser>{(me) => <HomeScreen me={me} />}</RequireUser>;
-}
-
-/** Placeholder for screens built in the next phases (5a chat, 5b composer, reader, settings). */
-export function ComingSoon({ titleKey }: { titleKey: string }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const chat = useQuery({
-    queryKey: ['conversation', id],
-    queryFn: () => api(`/conversations/${id}`, { schema: conversationItemSchema }),
-    enabled: titleKey === 'routes.chat' && Boolean(id),
-  });
-  return (
-    <RequireUser>
-      {() => (
-        <div className="flex min-h-dvh flex-col">
-          <TopBar
-            title={chat.data ? chat.data.title || t('chat.you') : t(titleKey)}
-            subtitle={chat.data?.subtitle}
-            left={
-              <IconButton label={t('common.back')} icon={ArrowLeft} onClick={() => navigate(-1)} />
-            }
-          />
-          <p className="p-8 text-center text-text-muted">{t('placeholder.comingSoon')}</p>
-        </div>
-      )}
-    </RequireUser>
-  );
 }

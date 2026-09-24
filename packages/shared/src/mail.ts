@@ -23,7 +23,8 @@ export const sendMessageBodySchema = z.object({
   subject: z.string().max(300).optional(),
   body: z.string().max(MAX_BODY_CHARS),
   replyToMessageId: z.string().uuid().optional(),
-  fromAliasId: z.string().uuid().optional(),
+  /** An alias to send as; null for the primary address; left out for the default. */
+  fromAliasId: z.string().uuid().nullable().optional(),
   attachmentIds: z.array(z.string().uuid()).max(20).optional(),
   draftId: z.string().uuid().optional(),
 });

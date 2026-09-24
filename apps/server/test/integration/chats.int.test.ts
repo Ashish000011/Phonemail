@@ -121,4 +121,56 @@ describe.skipIf(!up)('chats, receipts and SMS alerts (against the running stack)
     );
     expect(data.kind).toBe('direct');
   });
+
+  it('report spam blocks the sender; Settings lists them and can unblock', async () => {
+    const spammer = await TestClient.signIn('web');
+    await send(spammer, { to: [b.address], subject: 'Win a prize' });
+    const chat = await eventually(async () => {
+      const { data } = await b.request<ConversationPage>('GET', '/api/conversations');
+      return data.items.find((c) => c.participants.some((p) => p.address === spammer.address));
+    });
+    expect(chat).toBeDefined();
+    expect((await b.request('POST', `/api/conversations/${chat.id}/spam`)).status).toBe(204);
+
+    const blocked = await b.request<{ id: string; address: string }[]>('GET', '/api/me/blocked');
+    const entry = blocked.data.find((s) => s.address === spammer.address);
+    expect(entry).toBeDefined();
+
+    expect((await b.request('DELETE', `/api/me/blocked/${entry!.id}`)).status).toBe(204);
+    const after = await b.request<{ address: string }[]>('GET', '/api/me/blocked');
+    expect(after.data.some((s) => s.address === spammer.address)).toBe(false);
+    // Someone else's block can't be removed.
+    expect((await u.request('DELETE', `/api/me/blocked/${entry!.id}`)).status).toBe(404);
+  });
+
+  it('fromAliasId null sends from the primary address even when an alias is the default', async () => {
+    const localPart = `pm${Date.now().toString(36)}`;
+    const alias = await u.request<{ id: string }>('POST', '/api/aliases', { localPart });
+    expect(alias.status).toBe(201);
+    await u.request('PATCH', '/api/me', { defaultSendAsAliasId: alias.data.id });
+
+    const subject = `From test ${Date.now()}`;
+    const primary = await send(u, { to: [a.address], subject, fromAliasId: null });
+    const viaDefault = await send(u, { to: [a.address], subject: `${subject} (default)` });
+    await u.request('PATCH', '/api/me', { defaultSendAsAliasId: null });
+
+    // Aliases collapse into one person, so both land in the same chat.
+    expect(viaDefault.conversationId).toBe(primary.conversationId);
+    const received = await eventually(async () => {
+      const { data } = await a.request<ConversationPage>('GET', '/api/conversations');
+      const chat = data.items.find(
+        (c) => c.kind === 'direct' && c.participants.some((p) => p.address === u.address),
+      );
+      if (!chat) return undefined;
+      const page = await a.request<ChatMessagesPage>(
+        'GET',
+        `/api/conversations/${chat.id}/messages`,
+      );
+      const mine = page.data.items.filter((m) => m.subject.startsWith(subject));
+      return mine.length === 2 ? mine : undefined;
+    });
+    const fromOf = (s: string) => received.find((m) => m.subject === s)?.from.address;
+    expect(fromOf(subject)).toBe(u.address);
+    expect(fromOf(`${subject} (default)`)).toBe(`${localPart}@${u.address.split('@')[1]}`);
+  });
 });

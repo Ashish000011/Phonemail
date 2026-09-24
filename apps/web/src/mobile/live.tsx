@@ -15,6 +15,7 @@ import {
 } from '@phonemail/shared';
 import { getUserSocket } from '../shared/socket';
 import { notifyIfHidden, useFirstArrival } from './home/NotificationCard';
+import { playIncomingSound } from './sound';
 
 /**
  * Live updates for the mobile client (docs/spec/05-conversations.md,
@@ -144,6 +145,7 @@ export function useRealtime(enabled: boolean) {
         announce(t('home.newEmail', { name: message.from.name, subject }));
         useFirstArrival.getState().mark();
         notifyIfHidden(message.from.name, subject);
+        playIncomingSound();
       }
     };
     const onUpdated = (event: MessageUpdatedEvent) => {

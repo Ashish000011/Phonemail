@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
+  blockedSenderSchema,
   chatMessagesPageSchema,
   conversationFilterSchema,
   conversationItemSchema,
@@ -12,6 +13,7 @@ import {
 import { currentAuth, requireAuth } from '../auth/guard.js';
 import {
   getConversationItem,
+  listBlockedSenders,
   listChatMessages,
   listConversations,
   markConversationRead,
@@ -19,6 +21,7 @@ import {
   resolveConversation,
   spamConversation,
   trashConversation,
+  unblockSender,
 } from './service.js';
 
 /** The WhatsApp-style chat API for the mobile client (docs/spec/05-conversations.md). */
@@ -162,6 +165,31 @@ export async function conversationRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       await spamConversation(currentAuth(request).userId, request.params.id);
+      return reply.status(204).send(null);
+    },
+  );
+
+  app.get(
+    '/api/me/blocked',
+    {
+      ...auth,
+      schema: {
+        tags,
+        summary: 'Blocked senders (their mail goes to Spam)',
+        response: { 200: z.array(blockedSenderSchema) },
+      },
+    },
+    async (request) => listBlockedSenders(currentAuth(request).userId),
+  );
+
+  app.delete(
+    '/api/me/blocked/:id',
+    {
+      ...auth,
+      schema: { tags, summary: 'Unblock a sender', params: idParams, response: { 204: z.null() } },
+    },
+    async (request, reply) => {
+      await unblockSender(currentAuth(request).userId, request.params.id);
       return reply.status(204).send(null);
     },
   );

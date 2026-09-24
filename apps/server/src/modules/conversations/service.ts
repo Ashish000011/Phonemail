@@ -1,5 +1,6 @@
 import type { Conversation, ConversationParticipant, Prisma } from '@prisma/client';
 import type {
+  BlockedSender,
   ChatMessage,
   ChatMessagesPage,
   ConversationFilter,
@@ -597,6 +598,34 @@ export async function spamConversation(ownerId: string, id: string): Promise<voi
     type: 'conversation.removed',
     payload: { conversationId: id },
   });
+}
+
+/** The people whose mail goes straight to Spam, newest first. */
+export async function listBlockedSenders(ownerId: string): Promise<BlockedSender[]> {
+  const blocked = await db.blockedSender.findMany({
+    where: { userId: ownerId },
+    orderBy: { createdAt: 'desc' },
+  });
+  const people = await loadPeople(
+    ownerId,
+    blocked.map((b) => b.identityKey),
+  );
+  return blocked.map((b) => {
+    const person = people.get(b.identityKey)!;
+    return {
+      id: b.id,
+      name: personName(person),
+      address: person.address,
+      phoneDisplay: person.phoneE164 ? formatPhone(person.phoneE164) : null,
+      blockedAt: b.createdAt.toISOString(),
+    };
+  });
+}
+
+/** New mail from them arrives normally again; what's already in Spam stays there. */
+export async function unblockSender(ownerId: string, id: string): Promise<void> {
+  const { count } = await db.blockedSender.deleteMany({ where: { id, userId: ownerId } });
+  if (count === 0) throw new AppError(404, 'NOT_FOUND', 'Not found.');
 }
 
 /** Chats whose people match the search text (name, number or address). */

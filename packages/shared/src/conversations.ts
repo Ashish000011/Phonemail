@@ -129,6 +129,16 @@ export const patchConversationBodySchema = z.object({
   chatDraftBody: z.string().max(100_000).nullable().optional(),
 });
 
+/** Settings → Privacy → Blocked senders. Their mail goes straight to Spam. */
+export const blockedSenderSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  address: z.string(),
+  phoneDisplay: z.string().nullable(),
+  blockedAt: z.string(),
+});
+export type BlockedSender = z.infer<typeof blockedSenderSchema>;
+
 /** Socket.IO events the server sends (docs/spec/05-conversations.md, "Realtime"). */
 export const SOCKET_EVENTS = {
   messageNew: 'message:new',

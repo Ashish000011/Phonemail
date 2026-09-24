@@ -166,3 +166,27 @@ why. The AI assistant adds to this list during the build; the README links here.
     background (web push is out of scope).
 59. App icons are drawn by scripts/make-icons.mjs (plain Node, no image
     libraries) from the same shapes as the SVG logo.
+60. Settings → Privacy lists blocked senders through two small routes the
+    spec didn't have: GET /api/me/blocked and DELETE /api/me/blocked/:id.
+    Unblocking only affects new mail; what is already in Spam stays there.
+61. `fromAliasId: null` on POST /api/messages means "send from my phone
+    number address", even when an alias is the default; leaving it out
+    still means "use the default". Without this the composer could not
+    pick the primary address once an alias was the default.
+62. The reader keeps the spec's sandbox exactly (no allow-same-origin, no
+    scripts). Because that frame has no cookies, inline (cid:) images are
+    fetched by the page and passed in as data: URLs. The frame is one
+    screen tall and scrolls inside, since a sandboxed frame can't report
+    its height without scripts.
+63. The full composer saves unsent text where it came from: opened from a
+    chat (or as a reply), it autosaves into that chat's draft, so the chat
+    box shows the same text; opened from Home or from Drafts, it saves a
+    Draft. So the same words never exist twice.
+64. Profile photos are cropped to the middle square and scaled to 512 px
+    in the browser before upload (the cut list allowed plain upload; this
+    costs one canvas call and keeps avatars consistent).
+65. Help → About shows the web package version (set at build time) and a
+    GitHub link from the optional REPO_URL setting, served in /api/config,
+    so the link can be added without rebuilding.
+66. In-app sound is a two-note chime made with Web Audio (no sound file),
+    on by default, and the setting is kept per device in localStorage.

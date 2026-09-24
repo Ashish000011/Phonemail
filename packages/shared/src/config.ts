@@ -25,5 +25,7 @@ export const publicConfigSchema = z.object({
   languages: z.array(languageSchema),
   tosVersion: z.string(),
   otpPath: otpPathSchema,
+  /** The project's GitHub page, when REPO_URL is set */
+  repoUrl: z.string().nullable(),
 });
 export type PublicConfig = z.infer<typeof publicConfigSchema>;

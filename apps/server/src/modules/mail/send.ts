@@ -132,7 +132,7 @@ export async function sendMessage(
     }
 
     // ---- sender address, subject, attachments ---------------------------------------------
-    const aliasId = body.fromAliasId ?? user.defaultSendAsAliasId;
+    const aliasId = body.fromAliasId === undefined ? user.defaultSendAsAliasId : body.fromAliasId;
     const alias = aliasId ? user.aliases.find((a) => a.id === aliasId) : undefined;
     if (body.fromAliasId && !alias)
       throw new AppError(400, 'NOT_FOUND', 'That alias is not yours.');

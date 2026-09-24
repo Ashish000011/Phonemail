@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   useInfiniteQuery,
@@ -180,7 +188,10 @@ function ChatView({
   const heightBeforeOlder = useRef<number | null>(null);
   const markingRead = useRef(false);
   const lastSavedDraft = useRef(
-    JSON.stringify({ subject: conversation.chatDraft?.subject ?? '', body: conversation.chatDraft?.body ?? '' }),
+    JSON.stringify({
+      subject: conversation.chatDraft?.subject ?? '',
+      body: conversation.chatDraft?.body ?? '',
+    }),
   );
 
   const scrollToBottom = useCallback((smooth = false) => {
@@ -235,7 +246,9 @@ function ChatView({
                 ...data,
                 pages: data.pages.map((p) => ({
                   ...p,
-                  items: p.items.map((m) => (m.direction === 'incoming' ? { ...m, isRead: true } : m)),
+                  items: p.items.map((m) =>
+                    m.direction === 'incoming' ? { ...m, isRead: true } : m,
+                  ),
                 })),
               }
             : data,
@@ -336,7 +349,9 @@ function ChatView({
       }
       // The live event usually delivered the real bubble already; if not, fetch it.
       const cached = queryClient.getQueryData<MessagesCache>(['messages', id]);
-      const arrived = cached?.pages.some((p) => p.items.some((m) => m.messageId === result.messageId));
+      const arrived = cached?.pages.some((p) =>
+        p.items.some((m) => m.messageId === result.messageId),
+      );
       if (!arrived) await queryClient.invalidateQueries({ queryKey: ['messages', id] });
       saveDraft({ subject: '', body: '' });
       return true;
@@ -373,8 +388,8 @@ function ChatView({
     queryClient.setQueryData<MessagesCache>(['messages', id], (data) =>
       patchCachedMessage(data, message.messageId, (m) => ({ ...m, isStarred })),
     );
-    await api('/entries', { method: 'PATCH', body: { ids: [message.entryId], isStarred } }).catch((err) =>
-      toast(errorText(err)),
+    await api('/entries', { method: 'PATCH', body: { ids: [message.entryId], isStarred } }).catch(
+      (err) => toast(errorText(err)),
     );
   }
 
@@ -444,7 +459,11 @@ function ChatView({
               onClick: () => void chatAction('favorite'),
             },
             { label: t('home.reportSpam'), onClick: () => void chatAction('spam') },
-            { label: t('chat.moveChatToTrash'), onClick: () => void chatAction('trash'), danger: true },
+            {
+              label: t('chat.moveChatToTrash'),
+              onClick: () => void chatAction('trash'),
+              danger: true,
+            },
           ]}
         />
       </header>
@@ -457,7 +476,9 @@ function ChatView({
         style={{ backgroundColor: 'var(--color-chat-bg)', backgroundImage: WALLPAPER_URL }}
       >
         {loadingOlder && (
-          <p className="py-2 text-center text-[0.75rem] text-text-muted">{t('placeholder.checking')}</p>
+          <p className="py-2 text-center text-[0.75rem] text-text-muted">
+            {t('placeholder.checking')}
+          </p>
         )}
         {all.length === 0 && (
           <p className="mx-auto mt-6 w-fit max-w-[80%] rounded-lg bg-[#fff5c4] px-3 py-2 text-center text-[0.8125rem] text-text">

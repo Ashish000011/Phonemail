@@ -496,3 +496,67 @@ open the email in full view.
 4. **Accessible without swiping?** Every bubble can take keyboard focus.
    Enter opens it, the Menu key or right-click opens the actions, and the
    actions include Reply.
+
+## Phase 5b: reader, composer, chat info and settings
+
+### How locked recipients work
+A chat *is* its set of people (Phase 3). So inside a chat you can't add or
+remove anyone: that would quietly turn it into a different chat.
+- **Composer from a chat or as a reply:** To/Cc show as grey chips with a
+  lock and the hint "To add people, start a new email from Home". The
+  request carries only `conversationId`, never a recipient list.
+- **The server enforces it anyway:** `POST /api/messages` with a
+  `conversationId` *and* typed recipients returns 422 `RECIPIENTS_LOCKED`.
+  The UI only mirrors the rule; it is not the rule.
+- **From Home:** everything is editable; two or more people start (or reuse)
+  a group chat, and the composer says so before you send.
+
+### How the reader stays safe
+An email's HTML is written by a stranger, so it gets three layers:
+1. **Sanitized on the server** (sanitize-html): no scripts, forms, iframes,
+   event handlers or `javascript:` links. Remote images are parked in
+   `data-remote-src` so they don't load.
+2. **A sandboxed iframe**: `sandbox="allow-popups
+   allow-popups-to-escape-sandbox"`, so no scripts can run and the email
+   can't touch our page, cookies or storage. Links open in a new tab.
+3. **A CSP inside the frame**: `default-src 'none'`, images only from
+   `data:` until you tap "Show images" (that also stops tracking pixels).
+Inline pictures (`cid:`) are fetched by our page and handed in as `data:`
+URLs, because the sandboxed frame has no cookies. The HTML is prepared with
+`DOMParser`, which builds an inert document: nothing runs or loads there.
+
+### How aliases are validated
+- **Format** (shared rule): 3–30 characters, a–z, 0–9, `.`, `_`, `-`,
+  starting with a letter. Starting with a letter means an alias can never
+  look like someone's phone number.
+- **Reserved names:** admin, postmaster, support, anything starting with
+  "phonemail" and similar, so nobody can impersonate the service.
+- **Taken or held:** unique across everyone; a deleted alias is held for 30
+  days, so mail meant for its old owner can't reach a new one.
+- **Limit:** 5 per person.
+The form asks `GET /api/aliases/check` as you type (after a short pause) and
+shows the reason in words; `POST /api/aliases` checks everything again.
+
+### Drafts without duplicates
+Opened from a chat, the full composer saves into that chat's draft (the same
+text you see in the chat box). Opened from Home or Drafts, it saves a Draft
+record. Autosave runs two seconds after you stop typing, and only when
+something changed. Sending passes `draftId`, so the server deletes the draft
+in the same step.
+
+### Judge questions
+1. **Could an email run JavaScript in PhoneMail?** No. It is sanitized, then
+   shown in a sandboxed frame without `allow-scripts` and with a CSP of
+   `default-src 'none'`. Even if the sanitizer missed something, the frame
+   can't run it or reach our cookies.
+2. **Why can't I add someone to a chat?** A chat is defined by who is in it,
+   so adding a person makes it a different chat. Start a new email from Home
+   and PhoneMail opens (or creates) that group.
+3. **What happens to mail sent to a deleted alias?** It bounces, and for 30
+   days nobody else can claim the name, so private mail can't leak to a
+   stranger who registers it next.
+4. **How do you stop tracking pixels?** Remote images don't load until you
+   tap "Show images" (or turn on "Load images automatically" in Privacy).
+5. **What does "Log out of all other devices" do?** It revokes every other
+   session in the database, so their next request is refused right away,
+   not when their 15-minute token expires.

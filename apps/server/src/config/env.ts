@@ -56,6 +56,8 @@ export const envSchema = z.object({
   DEMO_MODE: booleanFlag(true),
   AUTH_MODE: authModeSchema.default('otp'),
   DEFAULT_COUNTRY: z.string().length(2).toUpperCase().default('IN'),
+  // Shown under Settings → Help → About (the project's GitHub page).
+  REPO_URL: z.url().optional(),
 
   JWT_SECRET: z.string().min(16).default(DEV_SECRETS.JWT_SECRET),
   OTP_PEPPER: z.string().min(16).default(DEV_SECRETS.OTP_PEPPER),

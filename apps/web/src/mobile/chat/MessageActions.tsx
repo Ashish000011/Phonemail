@@ -35,7 +35,8 @@ export function MessageActions({
 
   const info = useQuery({
     queryKey: ['thread', infoFor?.threadId],
-    queryFn: () => api(`/threads/${encodeURIComponent(infoFor!.threadId)}`, { schema: threadSchema }),
+    queryFn: () =>
+      api(`/threads/${encodeURIComponent(infoFor!.threadId)}`, { schema: threadSchema }),
     enabled: Boolean(infoFor),
   });
   const details = info.data?.messages.find((m) => m.messageId === infoFor?.messageId);
@@ -52,7 +53,11 @@ export function MessageActions({
         ...(canReply
           ? [
               { icon: Reply, label: t('chat.reply'), onClick: run(handlers.onReply) },
-              { icon: Maximize2, label: t('chat.replyFullView'), onClick: run(handlers.onReplyFullView) },
+              {
+                icon: Maximize2,
+                label: t('chat.replyFullView'),
+                onClick: run(handlers.onReplyFullView),
+              },
             ]
           : []),
         { icon: Maximize2, label: t('chat.openInFullView'), onClick: run(handlers.onOpen) },
@@ -72,14 +77,20 @@ export function MessageActions({
           }),
         },
         { icon: Info, label: t('chat.info'), onClick: run(setInfoFor) },
-        { icon: Trash2, label: t('chat.moveToTrash'), onClick: run(handlers.onTrash), danger: true },
+        {
+          icon: Trash2,
+          label: t('chat.moveToTrash'),
+          onClick: run(handlers.onTrash),
+          danger: true,
+        },
       ]
     : [];
 
   const fullDate = (iso: string) =>
-    new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'full', timeStyle: 'short' }).format(
-      new Date(iso),
-    );
+    new Intl.DateTimeFormat(intlLocale(i18n.language), {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    }).format(new Date(iso));
 
   return (
     <>

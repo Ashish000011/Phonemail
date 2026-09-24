@@ -20,6 +20,7 @@ export function buildPublicConfig(env: Env): PublicConfig {
     languages: [...LANGUAGES],
     tosVersion: TOS_VERSION,
     otpPath: summary.otpPath,
+    repoUrl: env.REPO_URL ?? null,
   };
 }
 

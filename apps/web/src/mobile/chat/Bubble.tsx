@@ -127,7 +127,9 @@ export const Bubble = memo(function Bubble({
         <div
           role="button"
           tabIndex={0}
-          aria-label={t(outgoing ? 'chat.yourEmail' : 'chat.emailFrom', { name: message.from.name })}
+          aria-label={t(outgoing ? 'chat.yourEmail' : 'chat.emailFrom', {
+            name: message.from.name,
+          })}
           aria-describedby={`msg-body-${message.messageId}`}
           {...press}
           onKeyDown={onKeyDown}
@@ -193,7 +195,9 @@ export const Bubble = memo(function Bubble({
               </p>
             )}
             {message.isLong && (
-              <span className="text-[0.875rem] font-medium text-[#027eb5]">{t('chat.readMore')}</span>
+              <span className="text-[0.875rem] font-medium text-[#027eb5]">
+                {t('chat.readMore')}
+              </span>
             )}
 
             {images.length > 0 && (

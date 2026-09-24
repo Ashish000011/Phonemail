@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Paperclip, SendHorizontal, Smile, X } from 'lucide-react';
-import { z } from 'zod';
-import { attachmentSchema, type AttachmentInfo, type ChatMessage } from '@phonemail/shared';
-import { api } from '../../shared/api';
+import type { AttachmentInfo, ChatMessage } from '@phonemail/shared';
+import { uploadAttachments } from '../../shared/attachments';
 import { useErrorText } from '../../shared/errors';
 import { fileSize } from '../../shared/time';
 import { IconButton } from '../ui/IconButton';
@@ -19,7 +18,17 @@ export interface OutgoingEmail {
 /** "Write in full view": an envelope with an expand arrow, where WhatsApp has its camera. */
 function FullViewIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <rect x="2.5" y="6" width="14" height="11" rx="2" />
       <path d="M3.5 7.5l6 4.5 6-4.5" />
       <path d="M15 3h6v6M21 3l-5.5 5.5" />
@@ -85,15 +94,9 @@ export function ChatInput({
     const files = [...(event.target.files ?? [])];
     event.target.value = '';
     if (files.length === 0) return;
-    const form = new FormData();
-    for (const file of files) form.append('file', file, file.name);
     setUploading(true);
     try {
-      const saved = await api('/attachments', {
-        method: 'POST',
-        body: form,
-        schema: z.array(attachmentSchema),
-      });
+      const saved = await uploadAttachments(files);
       setAttachments((current) => [...current, ...saved]);
     } catch (err) {
       toast(errorText(err));
@@ -135,7 +138,10 @@ export function ChatInput({
       {attachments.length > 0 && (
         <ul aria-label={t('chat.attachments')} className="mb-1 flex flex-wrap gap-1.5 px-1">
           {attachments.map((a) => (
-            <li key={a.id} className="flex items-center gap-1 rounded-full bg-surface py-1 pr-1 pl-3 text-[0.8125rem] shadow-sm">
+            <li
+              key={a.id}
+              className="flex items-center gap-1 rounded-full bg-surface py-1 pr-1 pl-3 text-[0.8125rem] shadow-sm"
+            >
               <span className="max-w-[160px] truncate">{a.filename}</span>
               <span className="text-text-muted">{fileSize(a.sizeBytes, i18n.language)}</span>
               <button
@@ -170,7 +176,12 @@ export function ChatInput({
                   {t('chat.openInFullView')}
                 </button>
               </div>
-              <IconButton label={t('chat.cancelReply')} icon={X} size={18} onClick={onCancelReply} />
+              <IconButton
+                label={t('chat.cancelReply')}
+                icon={X}
+                size={18}
+                onClick={onCancelReply}
+              />
             </div>
           ) : (
             <>
@@ -240,7 +251,15 @@ export function ChatInput({
         )}
       </div>
 
-      <input ref={fileInput} type="file" multiple hidden onChange={upload} aria-hidden="true" tabIndex={-1} />
+      <input
+        ref={fileInput}
+        type="file"
+        multiple
+        hidden
+        onChange={upload}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
       <EmojiGrid open={emojiOpen} onClose={() => setEmojiOpen(false)} onPick={insertEmoji} />
     </div>
   );

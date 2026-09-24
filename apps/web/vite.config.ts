@@ -9,6 +9,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 const apiTarget = 'http://localhost:3000';
 
 export default defineConfig({
+  // Shown under Settings → Help → About. npm sets it when a script runs.
+  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.1.0') },
   plugins: [
     react(),
     tailwindcss(),
@@ -33,7 +35,12 @@ export default defineConfig({
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          {
+            src: '/icons/maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
       workbox: {

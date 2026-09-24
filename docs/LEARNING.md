@@ -236,3 +236,75 @@ Anyone else gets `550 Relaying denied`.
 5. **What happens if the outside mail server is down?** The worker retries
    with growing waits; after the last try the email gets a red "failed" mark
    and you get a notice explaining which address failed.
+
+---
+
+## Phase 3: chats, live updates and SMS alerts
+
+### How emails become chats
+Every copy of an email (a MailboxEntry) belongs to exactly one chat of its
+owner. Which chat? Take everyone in From, To and Cc, remove yourself, and
+what's left is the chat's "participant set":
+```
+Arjun → me              →  {Arjun}           1:1 chat
+me → Arjun, Meera       →  {Arjun, Meera}    group chat
+Meera → me, cc Arjun    →  {Arjun, Meera}    the SAME group chat
+me → Arjun (later)      →  {Arjun}           back in the 1:1 chat
+```
+The set is sorted and hashed (SHA-256) into `participantKeyHash`; the
+database has a unique index on (owner, hash), so the same people always land
+in the same chat. Bcc never counts: if you were only Bcc'd, the email goes
+to your 1:1 chat with the sender.
+
+### Why aliases collapse into one person
+Arjun can write from `9000000002@`, `arjun@` or `9000000002+work@`. All
+three resolve to his user id, so his "identity key" is `u:<his id>` every
+time and it's still one chat. People outside PhoneMail are identified by
+their address (`e:x@gmail.com`).
+
+### How live updates work
+```
+smtp/worker/api ──publish──▶ Redis channel "events" ──▶ api ──Socket.IO──▶ your browser
+```
+The smtp service stores an email, then publishes "mail.delivered for user
+X". The api (the only process holding sockets) turns that into a
+`message:new` event with the ready-to-draw chat row and bubble, and sends it
+to room `user:X`. Sockets sign in with the same httpOnly cookie as the REST
+API, and each joins only its own room.
+
+### The SMS rule
+"Only for users who don't have the mobile app" becomes: **send an SMS
+when an email arrives, unless the user has an active mobile session.**
+- Signing in on the phone app creates a mobile session, so texts stop.
+- Signing out of every mobile session starts them again.
+- Checked twice: when the email arrives (spam, system mail, own email?) and
+  again in the worker just before sending (maybe they just opened the app).
+- The text is exactly the task's sentence, kept to one SMS segment: 160
+  characters normally, 70 if the name or subject is in Hindi or Tamil.
+
+Seed data shows both sides: emailing Arjun (web only) produces an SMS in
+the demo console; emailing Priya (mobile app) doesn't.
+
+### Blue ticks
+One grey tick = our SMTP server accepted it. Two grey = every PhoneMail
+recipient has it (same database transaction, so it's instant). Two blue =
+every recipient opened the chat, and both sides allow read receipts
+(a privacy toggle in Settings).
+
+### Judge questions
+1. **Why is the chat decided by the people and not by the email thread?**
+   The task says all emails from the same sender stay in one chat. Threads
+   still exist: replies are linked to their parent (quoted in the bubble),
+   and the Gmail view groups by thread.
+2. **What if an outside mail app replies only to me from a group email?**
+   The people in that reply are just the sender, so it lands in the 1:1 chat;
+   the bubble still quotes the original and says which group it came from.
+3. **Why Redis pub/sub instead of the smtp service sending socket events?**
+   Only the api has the sockets. Redis lets any process announce events, and
+   it would still work with several api containers.
+4. **How do you avoid texting someone who has the app?** The worker checks
+   for an active mobile session right before sending, not only when the
+   email arrived.
+5. **Why queue SMS alerts instead of sending right away?** Receiving mail
+   must stay fast and must never fail because an SMS provider is slow or
+   down. The queue retries with growing waits and logs every attempt.

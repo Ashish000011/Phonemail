@@ -118,3 +118,22 @@ why. The AI assistant adds to this list during the build; the README links here.
     rather than streamed to a temp file: simpler, and fine at this size.
 41. In a group chat or reply, recipients always come from the chat's
     participants (their primary addresses), even if they wrote from an alias.
+42. System mail (the welcome email, delivery-failure notices) never triggers
+    an SMS alert: an IVR sign-up already gets a confirmation SMS, and a
+    second text saying "you have an email from PhoneMail" would be noise.
+43. SMS alert shortening uses "..." for GSM-7 texts, because "…" isn't in the
+    GSM-7 alphabet and would switch the whole SMS to UCS-2 (70 characters).
+    UCS-2 texts (Hindi, Tamil, emoji) use "…".
+44. The worker skips an alert if the email was already read or trashed by
+    the time the job runs (the user saw it on the web in the meantime).
+45. Seeded Priya "has the mobile app" through a mobile session whose token
+    is random and discarded: it switches her SMS alerts off, but nobody can
+    sign in with it.
+46. The demo console listens on a Socket.IO "demo" room without signing in,
+    only when DEMO_MODE=true. Signed-in sockets only ever join their own
+    user room.
+47. Server containers default to TZ=Asia/Kolkata, so demo data ("today
+    9:10") and log times match the audience.
+48. A chat appears in the list once it has a visible email; "Start a chat
+    with …" creates the chat row right away, but it stays hidden until the
+    first email is sent, as in WhatsApp.

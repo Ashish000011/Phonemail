@@ -308,3 +308,74 @@ every recipient opened the chat, and both sides allow read receipts
 5. **Why queue SMS alerts instead of sending right away?** Receiving mail
    must stay fast and must never fail because an SMS provider is slow or
    down. The queue retries with growing waits and logs every attempt.
+
+---
+
+## Phase 6: sign-up by phone call and by SMS
+
+### What IVR and TwiML are
+IVR (Interactive Voice Response) is "press 1 for…". Twilio answers the call
+and asks *our server* what to do by POSTing to a webhook. We reply with
+TwiML, a small XML language:
+```xml
+<Response>
+  <Gather numDigits="1" action="/webhooks/twilio/voice/menu">
+    <Say>Welcome to PhoneMail… To create your free account, press 1.</Say>
+  </Gather>
+  <Redirect>/webhooks/twilio/voice?retry=1</Redirect>
+</Response>
+```
+Twilio reads the text aloud, waits for a key, and POSTs the key (`Digits=1`)
+and the caller's number (`From`) to the action URL. We create the account
+and answer with more TwiML that reads the address digit by digit.
+
+### How webhooks and the tunnel work
+Twilio lives on the internet; our laptop doesn't have a public address.
+`cloudflared` opens a tunnel from Cloudflare to our nginx and gives us a
+`https://….trycloudflare.com` URL. `public-url.sh` saves that URL and tells
+Twilio and SMSGate to call it.
+```
+caller → Twilio → https://xyz.trycloudflare.com/webhooks/twilio/voice
+                   → cloudflared → nginx → api → TwiML back to Twilio
+```
+
+### Why signature validation matters
+Anyone who knows the webhook URL could POST "From=+91… Digits=1" and create
+accounts for other people's numbers. Twilio signs every request with our
+secret auth token (HMAC-SHA1 over the URL and parameters). We recompute the
+signature and refuse anything that doesn't match. SMSGate calls a secret URL
+and can also sign its requests.
+
+### SMS sign-up on a personal phone
+The SMSGate phone is your own phone, which also gets bank OTPs and
+messages from friends. So on that channel:
+- only texts starting with **JOIN** (or HELP) do anything;
+- senders that aren't phone numbers (VM-HDFCBK) are ignored;
+- ignored texts are never stored or logged.
+The Twilio number exists only for PhoneMail, so any text there signs you up.
+
+### The Twilio trial limits (design around them)
+- Calls and texts only to/from **verified** numbers (max 5).
+- SMS bodies must be one of Twilio's templates, so alerts on Twilio are a
+  template and codes go by SMSGate or the demo console instead.
+- TwiML must answer within 5 seconds: we create the account (fast) and put
+  the confirmation SMS on the queue.
+- Use a US *local* number; toll-free US numbers can't be dialled from India.
+  "Call me" avoids international call charges altogether.
+
+### Judge questions
+1. **Is it really toll-free?** No: a Twilio trial can't get an Indian
+   toll-free number, and US toll-free numbers can't be reached from India. We
+   use the trial's US number, and "Call me" makes Twilio call you instead.
+   The IVR flow is identical.
+2. **What stops someone creating accounts for random numbers through the
+   webhook?** Twilio's signature. Without our auth token nobody can make a
+   valid one; unsigned requests get 403.
+3. **What if Twilio's SMS doesn't reach Indian numbers?** SMS goes through a
+   chain: SMSGate first, then Twilio, then the demo console. Every attempt,
+   failed or not, is in the SMS log and the demo console.
+4. **What happens if the same person calls twice?** Account creation is
+   idempotent: the second call hears "You already have a PhoneMail account"
+   and their address.
+5. **Can you demo without a phone?** Yes. The demo console's simulators run
+   the exact same code as the webhooks and show what the caller would hear.

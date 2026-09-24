@@ -12,7 +12,7 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 | 4 | Mobile UI: design system, onboarding, home | not started | | |
 | 5a | Mobile UI: chat screen | not started | | |
 | 5b | Mobile UI: reader, composer, chat info, settings | not started | | |
-| 6 | Telephony: IVR and SMS signup | not started | | |
+| 6 | Telephony: IVR and SMS signup | code done; real call test pending | | 195 unit tests; simulators in the demo console; Twilio signature checks; SMSGate JOIN gate; public-url.sh. Needs Docker + Twilio/SMSGate accounts for the real test |
 | 7 | Web client | not started | | |
 | 8 | Hardening | not started | | |
 | 9 | Docs and fresh-clone test | not started | | |

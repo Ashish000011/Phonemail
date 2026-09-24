@@ -137,3 +137,18 @@ why. The AI assistant adds to this list during the build; the README links here.
 48. A chat appears in the list once it has a visible email; "Start a chat
     with …" creates the chat row right away, but it stays hidden until the
     first email is sent, as in WhatsApp.
+49. Twilio webhooks are closed (403) until TWILIO_AUTH_TOKEN is set, because
+    without it we can't check that a request really comes from Twilio. The
+    demo console's simulators call the same service code directly instead.
+50. In password mode, a phone-call sign-up hears a 6-digit temporary PIN. The
+    server (not only the UI) then blocks everything except reading your
+    profile and setting a real password (403 PASSWORD_CHANGE_REQUIRED).
+51. "Call me" makes Twilio call the user and play the same IVR. For those
+    outbound calls the account is created for the called number (To), not
+    the Twilio number (From).
+52. The SMSGate webhook is protected by a secret path segment and, when
+    SMSGATE_SIGNING_KEY is set, by SMSGate's HMAC signature with a 5-minute
+    freshness window.
+53. public-url.sh updates the Twilio number's webhooks through the Twilio
+    REST API and re-registers the SMSGate webhook, because the free
+    Cloudflare quick-tunnel URL changes on every restart.

@@ -38,13 +38,10 @@ export function response(...verbs: string[]): string {
  */
 export function spokenDigits(digits: string): string {
   const groups: string[] = [];
-  for (let i = 0; i < digits.length; i += 5)
-    groups.push(
-      digits
-        .slice(i, i + 5)
-        .split('')
-        .join(' '),
-    );
+  for (let i = 0; i < digits.length; i += 5) {
+    const group = digits.slice(i, i + 5);
+    groups.push([...group].join(' '));
+  }
   return groups.join(', ');
 }
 

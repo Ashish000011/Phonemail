@@ -439,3 +439,60 @@ The sixth digit submits automatically.
 5. **Hindi and Tamil?** Every string comes from en/hi/ta JSON files, a test
    fails if any key is missing, and Noto fonts load only when those scripts
    appear on screen.
+
+## Phase 5a: the chat screen
+
+### How a chat screen is put together
+```
+apps/web/src/mobile/chat/
+  ChatScreen.tsx     loads the chat, groups by day, scrolling, send, drafts
+  Bubble.tsx         one email as a bubble: tail, quote, subject, files, ticks
+  ChatInput.tsx      subject + message box, reply bar, emoji, attach
+  MessageActions.tsx the long-press sheet (reply, star, copy, info, trash)
+  EmojiGrid.tsx      the emoji sheet
+  wallpaper.ts       the doodle background as an inline SVG
+```
+`ChatScreen` waits for the chat and the first page of emails, then mounts
+`ChatView` with `key={id}`. So opening another chat starts from a clean
+slate (scroll position, reply target, unread divider) without any reset code.
+
+### Scrolling, the part that is easy to get wrong
+- **Opening:** jump to the linked email (`?focus=`), else the "N unread
+  emails" divider, else the bottom.
+- **Older emails:** near the top we fetch the page before the oldest one
+  (`before=` cursor). Before it arrives we note the scroll height; after it
+  renders we add the difference, so what you were reading doesn't move.
+- **New emails:** follow them only if you were already near the bottom.
+  Otherwise a "scroll down" button appears with a count.
+- These run in `useLayoutEffect`, which runs before the browser paints, so
+  there is no visible jump.
+
+### Why each day is its own section
+Date labels are `position: sticky`. If they all share one list, the labels
+pile on top of each other at the top. Each day gets its own section, so its
+label sticks only while that day is on screen, like WhatsApp.
+
+### Optimistic sending
+Pressing send shows the bubble right away with a clock icon (a temporary id).
+When the server answers, the real bubble arrives through Socket.IO (or a
+refetch if the event was missed) and the temporary one is removed. On
+failure the text goes back into the box and a toast explains why.
+
+### Reply once
+Each email can be answered once from the chat, so the chat stays a clean
+back-and-forth. The client hides Reply (swipe resists, the sheet leaves it
+out) and the server returns 422 if someone tries anyway. You can still
+open the email in full view.
+
+### Judge questions
+1. **Is a bubble really an email?** Yes. It has a subject, a Message-ID,
+   and `In-Reply-To`/`References` when it is a reply, so Gmail threads it
+   correctly. Info on the long-press sheet shows the headers.
+2. **What about long emails and HTML?** Bubbles show the plain-text part,
+   cut after 12 lines with "Read more". The full email, HTML included, opens
+   in the reader view (Phase 5b) in a sandboxed iframe.
+3. **How does it stay smooth with hundreds of emails?** It loads 40 at a
+   time, and loads older pages only when you scroll up.
+4. **Accessible without swiping?** Every bubble can take keyboard focus.
+   Enter opens it, the Menu key or right-click opens the actions, and the
+   actions include Reply.

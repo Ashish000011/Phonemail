@@ -8,6 +8,7 @@ import { DemoConsole } from '../demo/DemoConsole';
 import { ComingSoon, HomeRoute, MobileShell } from '../mobile/MobileShell';
 import { Onboarding } from '../mobile/onboarding/Onboarding';
 import { DraftsScreen, FolderScreen } from '../mobile/folders/FolderScreens';
+import { ChatScreen } from '../mobile/chat/ChatScreen';
 
 /**
  * Every top-level route. /m is the WhatsApp-style mobile client, /mail the
@@ -24,7 +25,8 @@ export const router = createBrowserRouter([
       { path: 'drafts', element: <DraftsScreen /> },
       { path: 'spam', element: <FolderScreen folder="spam" /> },
       { path: 'trash', element: <FolderScreen folder="trash" /> },
-      { path: 'chat/:id', element: <ComingSoon titleKey="routes.chat" /> },
+      { path: 'chat/:id', element: <ChatScreen /> },
+      { path: 'chat/:id/info', element: <ComingSoon titleKey="routes.chat" /> },
       { path: 'compose', element: <ComingSoon titleKey="routes.compose" /> },
       { path: 'read/:threadId', element: <ComingSoon titleKey="routes.read" /> },
       { path: 'settings', element: <ComingSoon titleKey="routes.settings" /> },

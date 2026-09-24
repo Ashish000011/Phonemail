@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label'> {
@@ -8,6 +8,7 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   /** White icon, for use on dark or brand-colored backgrounds. */
   light?: boolean;
   size?: number;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /** A round, 44 px touch target with an icon and a required accessible name. */

@@ -30,7 +30,20 @@ export function PhoneStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
 
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState('');
-  const [sheet, setSheet] = useState<'country' | 'whatsMyNumber' | 'findNumber' | null>(null);
+  // The number from the welcome SMS link (?phone=9876543210), read once on arrival.
+  const [prefill] = useState(() => {
+    const fromLink = new URLSearchParams(location.search).get('phone');
+    const parsed = fromLink ? parsePhoneNumberFromString(fromLink, 'IN') : undefined;
+    return parsed?.isValid() && parsed.country
+      ? { country: parsed.country, number: parsed.nationalNumber }
+      : null;
+  });
+  // Without a pre-filled number, offer to find it (once; "Not now" is remembered).
+  const [sheet, setSheet] = useState<'country' | 'whatsMyNumber' | 'findNumber' | null>(() =>
+    !prefill && !number && rememberedAnswer(PERMISSION_KEYS.findNumber) === null
+      ? 'findNumber'
+      : null,
+  );
   const [confirm, setConfirm] = useState<{ e164: string; display: string } | null>(null);
   const [countryQuery, setCountryQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,18 +51,9 @@ export function PhoneStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
   const countries = useMemo(() => countryList(i18n.language), [i18n.language]);
   const selected = countries.find((c) => c.code === country) ?? countries[0];
 
-  // Pre-fill from the welcome SMS link (?phone=9876543210); otherwise offer to find the number.
   useEffect(() => {
-    const fromLink = new URLSearchParams(location.search).get('phone');
-    const parsed = fromLink ? parsePhoneNumberFromString(fromLink, 'IN') : undefined;
-    if (parsed?.isValid() && parsed.country) {
-      setPhone(parsed.country, parsed.nationalNumber);
-      return;
-    }
-    if (!number && rememberedAnswer(PERMISSION_KEYS.findNumber) === null) setSheet('findNumber');
-    // Only on arrival.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (prefill) setPhone(prefill.country, prefill.number);
+  }, [prefill, setPhone]);
 
   const requestCode = useMutation({
     mutationFn: (e164: string) =>

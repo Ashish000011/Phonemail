@@ -1,0 +1,19 @@
+// PhoneMail database schema. The full data model arrives in Phase 1
+// (see docs/spec/02-data-model.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Small key/value table for app-level facts, such as when demo data was seeded.
+model AppMeta {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

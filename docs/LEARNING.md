@@ -155,3 +155,84 @@ Every service logs its choice at startup ("provider summary").
 5. **What happens without any SMS provider?** Demo mode shows codes in the
    demo console; with demo mode off, the app switches to passwords
    automatically and says so at startup.
+
+---
+
+## Phase 2: the mail engine
+
+### What SMTP is
+SMTP is the language mail servers use to hand emails to each other. A short
+conversation on port 25 (ours: 2525):
+```
+them: EHLO gmail.com
+us:   250 phonemail.com
+them: MAIL FROM:<x@gmail.com>
+them: RCPT TO:<9876543210@phonemail.com>     ← we check this user exists
+them: DATA … the email …
+us:   250 Ok: stored as …                    ← only after it's safely saved
+```
+Because we run a real SMTP server, *any* mail program in the world can
+deliver to a PhoneMail address. That's what makes it real email, not a chat
+app pretending.
+
+### The journey of one email
+```
+You tap Send
+  → POST /api/messages          checks the rules (locked recipients, reply once…)
+  → our SMTP server (as you)     logged in with a 5-minute token only the api can make
+  → ingest pipeline (ingest.ts)
+       1. save the raw .eml file
+       2. parse it (mailparser), make HTML safe (sanitize-html)
+       3. work out the thread (Message-ID, In-Reply-To, References)
+       4. find local recipients (the envelope includes Bcc)
+       5. ONE database transaction: the Message, plus one MailboxEntry per
+          person (your "sent" copy, their "received" copy), each filed into
+          the right chat by the keying rule
+  → after commit: live events (Redis), relay job if someone is outside PhoneMail
+  → worker hands outside mail to the relay (Mailpit in demo mode)
+```
+Mail from outside skips the first two steps and enters at "our SMTP server".
+One pipeline for everything means one place to get right.
+
+### Message-ID, In-Reply-To, References
+Every email has a unique `Message-ID` like `<3f2a…@phonemail.com>`. A reply
+says `In-Reply-To: <that id>` and lists the whole chain in `References`. We
+use the first id in References as the thread id, so a conversation stays one
+thread in the Gmail view, and In-Reply-To links the reply bubble to its
+parent in the chat view. Gmail and Outlook do the same, so threads survive
+round trips through other mail apps.
+
+### Why sanitizing matters
+An email is HTML written by a stranger. Without cleaning, it could run
+JavaScript in our page (steal your session), show a fake login form, or load
+a tracking pixel that tells the sender you opened it. We:
+1. clean it on arrival: no scripts, event handlers, `javascript:` links,
+   iframes, forms or CSS `url()`; remote images are parked (`data-remote-src`)
+   until you tap "Show images";
+2. show it only inside a sandboxed iframe with a script-blocking policy.
+Both would have to fail at once for an attack to work.
+
+### Not an open relay
+An "open relay" sends mail anywhere for anyone, and spammers love those. Our
+server accepts mail from strangers **only for PhoneMail users**. Sending
+anywhere else requires logging in, and only our api can log in.
+Anyone else gets `550 Relaying denied`.
+
+### Judge questions
+1. **Can Gmail really send to 9876543210@phonemail.com?** Yes, if DNS
+   pointed our domain's MX record at this server. Locally we show it with
+   `send-test-email` and the demo console, which speak real SMTP to port 2525.
+2. **What stops two replies to the same email?** The server checks the
+   user's copy (`repliedAt`) and returns 422 ALREADY_REPLIED; a 60-second
+   lock catches a double tap before the first reply is stored.
+3. **Where's the email stored?** Raw bytes as an .eml file on the maildata
+   volume; parsed fields in Postgres. Each person gets their own
+   MailboxEntry (read, starred, trashed), so deleting yours doesn't delete
+   theirs.
+4. **How does spam detection work?** A small points system you can read in
+   one screen (`spam.ts`): unknown outside sender +3, many links +2, shouting
+   subject +2, scam phrases +3, known sender −5. 5 or more means Spam. Report
+   spam blocks the sender.
+5. **What happens if the outside mail server is down?** The worker retries
+   with growing waits; after the last try the email gets a red "failed" mark
+   and you get a notice explaining which address failed.

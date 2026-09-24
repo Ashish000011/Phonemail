@@ -93,3 +93,28 @@ why. The AI assistant adds to this list during the build; the README links here.
 32. SMSGate delivers inbound-SMS webhooks straight from the phone to our
     server (not through their cloud), and signs them with X-Signature
     (HMAC-SHA256). Phase 6 verifies that signature as well as the secret path.
+33. The api sends every email through our own SMTP server (logged in with a
+    5-minute HMAC token), instead of writing to the database directly. One
+    ingest path for all mail, and the SMTP rules (you may only send from your
+    own addresses) apply to our own app too.
+34. Unauthenticated SMTP senders may not use a @phonemail.com From address
+    (530): nobody outside can pretend to be a PhoneMail user. Real providers
+    use SPF/DKIM for this; we don't need them for a single-server demo.
+35. An email whose recipients are all PhoneMail users shows two grey ticks
+    ("delivered") at once, because every copy is created in the same database
+    transaction. With an outside recipient it stays at one tick ("sent" =
+    handed to the relay).
+36. If the relay still fails after its retries, the sender's copy is marked
+    "failed" and a notice from mailer-daemon@ arrives as its own chat.
+37. Search returns message hits and "Start a chat with …" now; matches on
+    chat names are added with the chat list in Phase 3. The web client uses
+    the same message hits.
+38. Search matches word prefixes (lunch:*), so results appear while typing.
+    Highlights are HTML-escaped first; only <mark> tags are added.
+39. Gmail folders use page numbers ("1–50 of 312", previous/next) rather than
+    cursors, matching Gmail's toolbar. Threads are grouped from the newest
+    1000 copies in the folder; older mail is reachable through search.
+40. Incoming emails are held in memory while they arrive (25 MB maximum)
+    rather than streamed to a temp file: simpler, and fine at this size.
+41. In a group chat or reply, recipients always come from the chat's
+    participants (their primary addresses), even if they wrote from an alias.

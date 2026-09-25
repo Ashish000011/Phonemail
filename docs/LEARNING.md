@@ -664,7 +664,7 @@ once.
    for every colour pair we use and fails CI if one drops below 4.5:1 for
    text or 3:1 for icons.
 5. **Why no end-to-end browser tests?** Playwright was cut for time. Instead,
-   195 unit tests cover the rules, and CI starts the whole stack with
+   201 unit tests cover the rules, and CI starts the whole stack with
    `docker compose up` (no .env, as a judge would) and runs the smoke test
    and the API integration tests against it. Every screen was also checked
    by hand in a phone-sized browser.

@@ -81,3 +81,38 @@ describe('errors and CSRF', () => {
     expect(res.statusCode).toBe(404);
   });
 });
+
+/** "POST /api/drafts/:id" for every route in Fastify's printed route tree. */
+function routesFromTree(tree: string): string[] {
+  const parents: string[] = [];
+  const routes: string[] = [];
+  for (const line of tree.split('\n')) {
+    const match = line.match(/^([│ ]*)[├└]── (.+?) \(([A-Z, ]+)\)$/);
+    if (!match) continue;
+    const depth = match[1].length / 4;
+    const path = (depth ? parents[depth - 1] : '') + match[2];
+    parents[depth] = path;
+    for (const method of match[3].split(', ')) {
+      if (method !== 'HEAD') routes.push(`${method} ${path}`);
+    }
+  }
+  return routes;
+}
+
+describe('API docs', () => {
+  it('/api/docs describes every API route', async () => {
+    const built = await makeApp();
+    await built.ready();
+    const spec = built.swagger() as { paths: Record<string, Record<string, unknown>> };
+    const routes = routesFromTree(built.printRoutes({ commonPrefix: false })).filter(
+      (route) => route.includes(' /api/') && !route.includes(' /api/docs'),
+    );
+    expect(routes.length).toBeGreaterThan(40);
+    const missing = routes.filter((route) => {
+      const [method, path] = route.split(' ');
+      const openApiPath = path.replace(/:(\w+)/g, '{$1}');
+      return !spec.paths[openApiPath]?.[method.toLowerCase()];
+    });
+    expect(missing).toEqual([]);
+  });
+});

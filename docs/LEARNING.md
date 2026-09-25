@@ -719,3 +719,27 @@ between codes. 15-minute access cookie, 30-day refresh. 30 emails a minute.
 **If something breaks in the demo.** `docker compose ps`, then
 `docker compose logs api`. The demo console works without Twilio or SMSGate,
 so the story can always be shown with the simulators.
+
+## The first run on the real stack: what it caught
+
+Everything above was built and unit-tested before Docker was installed. The
+first `docker compose up` came up healthy with no changes, and all 14 smoke
+checks passed. Using the app for real then found four bugs that no unit test
+could:
+1. **The integration tests were quietly skipping.** Vitest puts Vite's
+   `BASE_URL=/` into the environment, so the tests thought the stack was
+   down. Renamed our variable, and CI now fails loudly instead of skipping.
+2. **Spam never reached Spam.** The "do you already know this sender?" check
+   ran after the chat for that very email had been created, so everyone
+   looked known. Now "known" means a real email already sits in a chat with
+   them.
+3. **A reply to a reply started a new thread** when the sender's mail app
+   listed only the direct parent. Now a reply joins its parent's thread
+   whenever we have the parent.
+4. **Quoting your own email showed your name** instead of "You".
+Each fix came with an integration test that failed first, then passed.
+
+**Judge question: how do you know it works?** 201 unit tests for the rules,
+19 integration tests and 14 smoke checks against the running stack (also in
+CI on every push), and the whole demo story done by hand on the real stack.
+The four bugs above were found exactly that way.

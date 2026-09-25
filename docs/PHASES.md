@@ -28,7 +28,7 @@
 8. End of each day: run the day's demo checkpoint (below).
 
 ## Staying within the AI plan's limits
-- chat and coding sessions draw from the same usage, so build in the coding
+- Chat and coding sessions draw from the same usage, so build in the coding
   tool and keep chats short (a new chat per question).
 - The plan's usage page shows what's left. Start heavy phases right after a
   reset.

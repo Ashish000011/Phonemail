@@ -663,7 +663,8 @@ once.
 4. **How did you check colour contrast?** A script computes the WCAG ratio
    for every colour pair we use and fails CI if one drops below 4.5:1 for
    text or 3:1 for icons.
-5. **Why no end-to-end browser tests?** They need the running stack. We
-   covered the rules with 195 unit tests and wrote integration tests that run
-   against `docker compose` in CI. Every screen was also checked by hand in a
-   phone-sized browser.
+5. **Why no end-to-end browser tests?** Playwright was cut for time. Instead,
+   195 unit tests cover the rules, and CI starts the whole stack with
+   `docker compose up` (no .env, as a judge would) and runs the smoke test
+   and the API integration tests against it. Every screen was also checked
+   by hand in a phone-sized browser.

@@ -27,9 +27,25 @@ jobs:
       - name: Known vulnerabilities in production dependencies
         run: npm audit --omit=dev --audit-level=critical
 
-  docker:
-    name: Docker images build
+  stack:
+    name: Full stack (docker compose, smoke, integration tests)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker compose build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Exactly what a judge runs: no .env, demo mode. The integration tests sign
+      # in several users from this one machine, so allow more codes per IP.
+      - name: Start the stack
+        run: docker compose up -d --build
+        env:
+          OTP_IP_LIMIT_PER_HOUR: 1000
+      - run: ./scripts/smoke.sh
+      - name: Integration tests against the stack
+        run: npm run build:shared && npm run test:integration -w apps/server
+      - name: Logs on failure
+        if: failure()
+        run: docker compose ps && docker compose logs --no-color --tail 100

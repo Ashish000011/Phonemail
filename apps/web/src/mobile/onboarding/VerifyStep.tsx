@@ -136,11 +136,7 @@ export function VerifyStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
       </h1>
       <p className="mt-4 text-center text-[0.9375rem] text-text-muted">
         {t('onboarding.waitingForSms', { phone: display })}{' '}
-        <button
-          type="button"
-          onClick={() => go('phone')}
-          className="text-[#027eb5] hover:underline"
-        >
+        <button type="button" onClick={() => go('phone')} className="text-link hover:underline">
           {t('onboarding.wrongNumber')}
         </button>
       </p>

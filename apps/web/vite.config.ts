@@ -52,6 +52,11 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Screens are split per route (app/router.tsx). The main file is React, the router,
+    // TanStack Query, zod and the three languages: ~180 KB gzipped, so warn only above that.
+    chunkSizeWarningLimit: 700,
+  },
   server: {
     port: 5173,
     proxy: {

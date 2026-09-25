@@ -13,7 +13,8 @@
   --color-text: #111b21;
   /* Darker than the spec's #667781, which is only 4.1:1 on app-bg; this passes 4.5:1 on both. */
   --color-text-muted: #54656f;
-  --color-tick-read: #53bdeb;
+  --color-tick-read: #1a8fcc;
+  --color-link: #026c9c;
   --color-danger: #d93025;
 
   /* Noto fonts only download for Hindi and Tamil text (unicode-range). */

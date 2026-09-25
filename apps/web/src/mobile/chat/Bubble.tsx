@@ -195,9 +195,7 @@ export const Bubble = memo(function Bubble({
               </p>
             )}
             {message.isLong && (
-              <span className="text-[0.875rem] font-medium text-[#027eb5]">
-                {t('chat.readMore')}
-              </span>
+              <span className="text-[0.875rem] font-medium text-link">{t('chat.readMore')}</span>
             )}
 
             {images.length > 0 && (
@@ -256,7 +254,7 @@ export const Bubble = memo(function Bubble({
           <button
             type="button"
             onClick={() => message.replyMessageId && onJump(message.replyMessageId)}
-            className={`mt-0.5 flex items-center gap-1 text-[0.75rem] font-medium text-[#027eb5] ${
+            className={`mt-0.5 flex items-center gap-1 text-[0.75rem] font-medium text-link ${
               outgoing ? 'self-end' : 'self-start'
             }`}
           >

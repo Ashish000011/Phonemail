@@ -609,3 +609,61 @@ screen, gives the new row a short yellow highlight, and the tab title shows
 5. **How does the login know I'm new?** It doesn't need to. The same Next
    button sends a code and then signs you in; if the number has no account,
    verifying the code creates it (channel "web").
+
+## Phase 8: hardening
+
+### The security measures in plain words
+- **Codes can't be guessed or stolen from storage.** A code lives 5 minutes,
+  allows 5 tries, and is stored only as a keyed hash.
+- **A stolen cookie is short-lived.** The access cookie lasts 15 minutes. The
+  refresh cookie changes on every use, and if an old one is replayed, the
+  whole session is cut off.
+- **Other websites can't act as you.** Every change needs a custom header
+  that a normal form on another site can't send (CSRF).
+- **Emails can't run code.** Cleaned on the server, then shown in a sandbox
+  that can't run scripts, with remote images off until you allow them.
+- **Attachments can't pretend.** Their real type is read from the bytes. Only
+  plain photos open in the browser; everything else downloads.
+- **We're not a spam cannon.** The SMTP server only accepts mail for its own
+  domain; sending out needs a token only our API has. Sending, sign-up codes
+  and sign-up texts are all rate limited.
+- **Webhooks are signed.** A fake "Twilio" request is refused.
+- **Least privilege.** Containers run as non-root users, and the database and
+  Redis aren't reachable from outside Docker.
+The full list with file paths is in docs/SECURITY.md.
+
+### What accessibility means in this app
+- **Keyboard:** everything works without a mouse. Every swipe has a
+  long-press menu or a button; the web client has Gmail's shortcuts.
+- **Screen readers:** every icon button has a name, lists are real lists,
+  dialogs trap focus and close on Escape, new emails are announced, and
+  ticks are spoken ("Read").
+- **Seeing it:** every text and background pair passes WCAG AA contrast. A
+  script checks this in CI, which is how we found (and fixed) three colours.
+- **Language:** English, Hindi and Tamil, with the page's `lang` updated so
+  screen readers pronounce it right.
+- **Motion:** "reduce motion" turns off the slide and swipe animations.
+
+### Why split the code by screen?
+A phone opening the chat list shouldn't download the Gmail client, the demo
+console or the country list. Each screen now loads its own file the first
+time it opens; the shared core (React, the API client, translations) loads
+once.
+
+### Judge questions
+1. **What stops someone brute-forcing a sign-in code?** 5 tries per code,
+   a new code only every 30 seconds, 5 codes per number and 20 per IP per
+   hour. That's about 25 guesses an hour against a million possibilities.
+2. **What if someone steals the database?** Codes are keyed hashes,
+   passwords are Argon2id, refresh tokens are hashed. There's nothing to
+   replay.
+3. **Could an email with an SVG run a script on your site?** No. SVG is
+   detected as text and always downloads; only JPEG, PNG, WebP and GIF open
+   in the browser.
+4. **How did you check colour contrast?** A script computes the WCAG ratio
+   for every colour pair we use and fails CI if one drops below 4.5:1 for
+   text or 3:1 for icons.
+5. **Why no end-to-end browser tests?** They need the running stack. We
+   covered the rules with 195 unit tests and wrote integration tests that run
+   against `docker compose` in CI. Every screen was also checked by hand in a
+   phone-sized browser.

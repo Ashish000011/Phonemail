@@ -143,7 +143,7 @@ export function RecipientField({
               key={recipient.value}
               title={recipient.value}
               className={`flex max-w-full items-center gap-1 rounded-full border py-0.5 pr-0.5 pl-2.5 text-[0.875rem] ${
-                valid ? 'border-black/15 bg-[#f0f2f5]' : 'border-danger bg-[#fde8e8] text-danger'
+                valid ? 'border-black/15 bg-[#f0f2f5]' : 'border-danger bg-[#fde8e8] text-[#b3261e]'
               }`}
             >
               <span className="truncate">{recipient.label}</span>

@@ -1,0 +1,35 @@
+# Runs on every push and pull request (docs/spec/09-quality.md, "Tests").
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    name: Typecheck, lint, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # npm ci also runs `prisma generate` (apps/server postinstall).
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Colour contrast (WCAG AA)
+        run: node scripts/check-contrast.mjs
+      # Fails on critical advisories. One known "high" (deepmerge-ts inside the Prisma
+      # CLI's config loader, which only reads our own config) is explained in docs/SECURITY.md.
+      - name: Known vulnerabilities in production dependencies
+        run: npm audit --omit=dev --audit-level=critical
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build

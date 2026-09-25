@@ -8,7 +8,7 @@ const FRAME_CSS = `
   img { max-width: 100%; height: auto; }
   table { max-width: 100%; }
   pre { white-space: pre-wrap; }
-  a { color: #027eb5; }
+  a { color: #026c9c; }
   blockquote { margin: 0 0 0 4px; padding-left: 12px; border-left: 3px solid #d1d7db; color: #54656f; }
 `;
 

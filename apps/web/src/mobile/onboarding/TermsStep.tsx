@@ -49,7 +49,7 @@ export function TermsStep() {
     <button
       type="button"
       onClick={() => setSheet(kind)}
-      className="font-medium text-[#027eb5] underline-offset-2 hover:underline"
+      className="font-medium text-link underline-offset-2 hover:underline"
     />
   );
 

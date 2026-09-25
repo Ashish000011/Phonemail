@@ -115,7 +115,7 @@ export function PhoneStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
         <button
           type="button"
           onClick={() => setSheet('whatsMyNumber')}
-          className="text-[#027eb5] hover:underline"
+          className="text-link hover:underline"
         >
           {t('onboarding.whatsMyNumber')}
         </button>

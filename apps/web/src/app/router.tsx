@@ -1,76 +1,168 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { DeviceRedirect } from './DeviceRedirect';
-import { LegalPage } from './LegalPage';
 import { NotFound } from './NotFound';
-import { RegisterPage } from '../portal/RegisterPage';
-import { DemoConsole } from '../demo/DemoConsole';
-import { HomeRoute, MobileShell } from '../mobile/MobileShell';
-import { Onboarding } from '../mobile/onboarding/Onboarding';
-import { DraftsScreen, FolderScreen } from '../mobile/folders/FolderScreens';
-import { ChatScreen } from '../mobile/chat/ChatScreen';
-import { ChatInfoScreen } from '../mobile/chat/ChatInfoScreen';
-import { ComposeScreen } from '../mobile/compose/ComposeScreen';
-import { ReaderScreen } from '../mobile/read/ReaderScreen';
-import { SettingsScreen } from '../mobile/settings/SettingsScreen';
-import { ProfileScreen } from '../mobile/settings/ProfileScreen';
-import { AliasesScreen } from '../mobile/settings/AliasesScreen';
-import { NotificationsScreen } from '../mobile/settings/NotificationsScreen';
-import { PrivacyScreen } from '../mobile/settings/PrivacyScreen';
-import { DevicesScreen } from '../mobile/settings/DevicesScreen';
-import { HelpScreen } from '../mobile/settings/HelpScreen';
-import { PasswordScreen } from '../mobile/settings/PasswordScreen';
-import { LoginPage } from '../web/LoginPage';
-import { MailListRoute, SearchList } from '../web/MailList';
-import { ThreadView } from '../web/ThreadView';
-import { WebSettings } from '../web/WebSettings';
-import { WebShell } from '../web/WebShell';
+import { Logo } from '../shared/Logo';
+
+/** Shown while the first screen's code downloads. */
+function AppSplash() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center" role="status">
+      <Logo size={64} />
+    </div>
+  );
+}
 
 /**
- * Every top-level route. /m is the WhatsApp-style mobile client, /mail the
- * Gmail-style web client, /login its sign-in, /register the portal, /demo the demo console.
+ * Each screen loads its code when first opened, so a phone opening /m doesn't
+ * download the Gmail client, the demo console or the country list it doesn't
+ * need. Shared pieces (React, the API client, translations) stay in the main file.
  */
-export const router = createBrowserRouter([
+const mobile = {
+  shell: () => import('../mobile/MobileShell'),
+  onboarding: () => import('../mobile/onboarding/Onboarding'),
+  folders: () => import('../mobile/folders/FolderScreens'),
+  chat: () => import('../mobile/chat/ChatScreen'),
+  chatInfo: () => import('../mobile/chat/ChatInfoScreen'),
+  compose: () => import('../mobile/compose/ComposeScreen'),
+  read: () => import('../mobile/read/ReaderScreen'),
+  settings: () => import('../mobile/settings/SettingsScreen'),
+  profile: () => import('../mobile/settings/ProfileScreen'),
+  aliases: () => import('../mobile/settings/AliasesScreen'),
+  notifications: () => import('../mobile/settings/NotificationsScreen'),
+  privacy: () => import('../mobile/settings/PrivacyScreen'),
+  devices: () => import('../mobile/settings/DevicesScreen'),
+  help: () => import('../mobile/settings/HelpScreen'),
+  password: () => import('../mobile/settings/PasswordScreen'),
+};
+const web = {
+  shell: () => import('../web/WebShell'),
+  list: () => import('../web/MailList'),
+  thread: () => import('../web/ThreadView'),
+  settings: () => import('../web/WebSettings'),
+  login: () => import('../web/LoginPage'),
+};
+
+const routes: RouteObject[] = [
   { path: '/', element: <DeviceRedirect /> },
   {
     path: '/m',
-    element: <MobileShell />,
+    lazy: async () => ({ Component: (await mobile.shell()).MobileShell }),
     children: [
-      { index: true, element: <HomeRoute /> },
-      { path: 'welcome', element: <Onboarding /> },
-      { path: 'drafts', element: <DraftsScreen /> },
-      { path: 'spam', element: <FolderScreen folder="spam" /> },
-      { path: 'trash', element: <FolderScreen folder="trash" /> },
-      { path: 'chat/:id', element: <ChatScreen /> },
-      { path: 'chat/:id/info', element: <ChatInfoScreen /> },
-      { path: 'compose', element: <ComposeScreen /> },
-      { path: 'read/:threadId', element: <ReaderScreen /> },
-      { path: 'settings', element: <SettingsScreen /> },
-      { path: 'settings/profile', element: <ProfileScreen /> },
-      { path: 'settings/aliases', element: <AliasesScreen /> },
-      { path: 'settings/notifications', element: <NotificationsScreen /> },
-      { path: 'settings/privacy', element: <PrivacyScreen /> },
-      { path: 'settings/devices', element: <DevicesScreen /> },
-      { path: 'settings/help', element: <HelpScreen /> },
-      { path: 'settings/password', element: <PasswordScreen /> },
+      { index: true, lazy: async () => ({ Component: (await mobile.shell()).HomeRoute }) },
+      {
+        path: 'welcome',
+        lazy: async () => ({ Component: (await mobile.onboarding()).Onboarding }),
+      },
+      { path: 'drafts', lazy: async () => ({ Component: (await mobile.folders()).DraftsScreen }) },
+      {
+        path: 'spam',
+        lazy: async () => {
+          const { FolderScreen } = await mobile.folders();
+          return { element: <FolderScreen folder="spam" /> };
+        },
+      },
+      {
+        path: 'trash',
+        lazy: async () => {
+          const { FolderScreen } = await mobile.folders();
+          return { element: <FolderScreen folder="trash" /> };
+        },
+      },
+      { path: 'chat/:id', lazy: async () => ({ Component: (await mobile.chat()).ChatScreen }) },
+      {
+        path: 'chat/:id/info',
+        lazy: async () => ({ Component: (await mobile.chatInfo()).ChatInfoScreen }),
+      },
+      {
+        path: 'compose',
+        lazy: async () => ({ Component: (await mobile.compose()).ComposeScreen }),
+      },
+      {
+        path: 'read/:threadId',
+        lazy: async () => ({ Component: (await mobile.read()).ReaderScreen }),
+      },
+      {
+        path: 'settings',
+        lazy: async () => ({ Component: (await mobile.settings()).SettingsScreen }),
+      },
+      {
+        path: 'settings/profile',
+        lazy: async () => ({ Component: (await mobile.profile()).ProfileScreen }),
+      },
+      {
+        path: 'settings/aliases',
+        lazy: async () => ({ Component: (await mobile.aliases()).AliasesScreen }),
+      },
+      {
+        path: 'settings/notifications',
+        lazy: async () => ({ Component: (await mobile.notifications()).NotificationsScreen }),
+      },
+      {
+        path: 'settings/privacy',
+        lazy: async () => ({ Component: (await mobile.privacy()).PrivacyScreen }),
+      },
+      {
+        path: 'settings/devices',
+        lazy: async () => ({ Component: (await mobile.devices()).DevicesScreen }),
+      },
+      {
+        path: 'settings/help',
+        lazy: async () => ({ Component: (await mobile.help()).HelpScreen }),
+      },
+      {
+        path: 'settings/password',
+        lazy: async () => ({ Component: (await mobile.password()).PasswordScreen }),
+      },
       { path: '*', element: <NotFound /> },
     ],
   },
   {
     path: '/mail',
-    element: <WebShell />,
+    lazy: async () => ({ Component: (await web.shell()).WebShell }),
     children: [
       { index: true, element: <Navigate to="inbox" replace /> },
-      { path: 'search', element: <SearchList /> },
-      { path: 'settings', element: <WebSettings /> },
-      { path: 'settings/:tab', element: <WebSettings /> },
-      { path: ':folder', element: <MailListRoute /> },
-      { path: ':folder/:threadId', element: <ThreadView /> },
+      { path: 'search', lazy: async () => ({ Component: (await web.list()).SearchList }) },
+      { path: 'settings', lazy: async () => ({ Component: (await web.settings()).WebSettings }) },
+      {
+        path: 'settings/:tab',
+        lazy: async () => ({ Component: (await web.settings()).WebSettings }),
+      },
+      { path: ':folder', lazy: async () => ({ Component: (await web.list()).MailListRoute }) },
+      {
+        path: ':folder/:threadId',
+        lazy: async () => ({ Component: (await web.thread()).ThreadView }),
+      },
     ],
   },
-  { path: '/login', element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
-  { path: '/demo', element: <DemoConsole /> },
-  { path: '/terms', element: <LegalPage kind="terms" /> },
-  { path: '/privacy', element: <LegalPage kind="privacy" /> },
+  { path: '/login', lazy: async () => ({ Component: (await web.login()).LoginPage }) },
+  {
+    path: '/register',
+    lazy: async () => ({ Component: (await import('../portal/RegisterPage')).RegisterPage }),
+  },
+  {
+    path: '/demo',
+    lazy: async () => ({ Component: (await import('../demo/DemoConsole')).DemoConsole }),
+  },
+  {
+    path: '/terms',
+    lazy: async () => {
+      const { LegalPage } = await import('./LegalPage');
+      return { element: <LegalPage kind="terms" /> };
+    },
+  },
+  {
+    path: '/privacy',
+    lazy: async () => {
+      const { LegalPage } = await import('./LegalPage');
+      return { element: <LegalPage kind="privacy" /> };
+    },
+  },
   { path: '*', element: <NotFound /> },
-]);
+];
+
+/**
+ * Every top-level route. /m is the WhatsApp-style mobile client, /mail the
+ * Gmail-style web client, /login its sign-in, /register the portal, /demo
+ * the demo console.
+ */
+export const router = createBrowserRouter([{ HydrateFallback: AppSplash, children: routes }]);

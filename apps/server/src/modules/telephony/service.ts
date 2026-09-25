@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import { env } from '../../config/env.js';
 import { getQueue, QUEUES } from '../../lib/queue.js';
 import type { RequestMeta } from '../../lib/request-meta.js';
-import { authMode, smsSender } from '../../services.js';
+import { authMode, kv, smsSender } from '../../services.js';
 import type { SmsPurpose } from '../../providers/sms/index.js';
 import { formatAddress, tryNormalizePhone } from '../addressing/index.js';
 import { createAccount } from '../accounts/service.js';
@@ -61,8 +61,15 @@ export interface SignupSmsJob {
   userId?: string;
 }
 
+/**
+ * At most this many sign-up texts per number per hour, so repeated calls or
+ * texts can't be used to flood someone's phone (or run up the SMS bill).
+ */
+const SIGNUP_SMS_PER_HOUR = 3;
+
 /** SMS replies go through the worker, so webhooks answer within Twilio's 5-second budget. */
 export async function queueSignupSms(job: SignupSmsJob): Promise<void> {
+  if ((await kv.increment(`signup-sms:${job.toE164}`, 3600)) > SIGNUP_SMS_PER_HOUR) return;
   await getQueue(QUEUES.signup).add(job.purpose, job);
 }
 

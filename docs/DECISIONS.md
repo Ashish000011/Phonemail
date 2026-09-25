@@ -201,3 +201,17 @@ why. The AI assistant adds to this list during the build; the README links here.
 70. The composer is one component with two layouts (mobile full screen, web
     floating window), so locked recipients, reply-once and drafts are
     written once for both clients.
+71. Every screen is its own lazy route (React Router `lazy`), which cut the
+    main bundle from 1,125 KB to about 600 KB (180 KB gzipped). Hindi and
+    Tamil stay in the main file (20 KB gzipped together): loading them later
+    would flash English at startup.
+72. Three colours were darkened to pass WCAG AA: links #027eb5 → #026c9c,
+    read ticks #53bdeb → #1a8fcc (3:1 against the green bubble), and the
+    invalid-recipient chip text → #b3261e. `scripts/check-contrast.mjs`
+    checks every pair and runs in CI.
+73. CI's `npm audit` fails on critical advisories only; the one known high
+    (deepmerge-ts in the Prisma CLI config loader) is explained in
+    docs/SECURITY.md. Overriding it broke `prisma generate`, so it stays
+    until Prisma ships a fix.
+74. At most 3 sign-up texts per phone number per hour (IVR confirmation and
+    SMS replies), so the telephony webhooks can't be used to flood a phone.

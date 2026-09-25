@@ -171,7 +171,7 @@ export function ChatInput({
                 <button
                   type="button"
                   onClick={() => onFullView({ subject: '', body })}
-                  className="mt-0.5 text-[0.75rem] font-medium text-[#027eb5]"
+                  className="mt-0.5 text-[0.75rem] font-medium text-link"
                 >
                   {t('chat.openInFullView')}
                 </button>

@@ -106,6 +106,23 @@ describe.skipIf(!up)('mail engine (against the running stack)', () => {
     expect(item.from.address).toBe('news@example.com');
   });
 
+  it('an outside scam email goes to Spam, not the inbox', async () => {
+    const subject = `YOU HAVE WON A PRIZE ${Date.now()}`;
+    await smtp().sendMail({
+      from: `winner${Date.now()}@prizes.example.net`,
+      to: alice.address,
+      subject,
+      text: 'Congratulations! Claim your prize now.',
+    });
+    const spam = await eventually(async () => {
+      const { data } = await alice.request<MailboxPage>('GET', '/api/mailbox/spam');
+      return data.items.find((i) => i.subject === subject);
+    });
+    expect(spam).toBeTruthy();
+    const inbox = await alice.request<MailboxPage>('GET', '/api/mailbox/inbox');
+    expect(inbox.data.items.some((i) => i.subject === subject)).toBe(false);
+  });
+
   it('is not an open relay', async () => {
     await expect(
       smtp().sendMail({ from: 'x@example.com', to: 'y@example.org', subject: 's', text: 't' }),

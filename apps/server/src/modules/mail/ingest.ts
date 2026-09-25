@@ -427,8 +427,15 @@ async function checkSpam(
     where: { userId_identityKey: { userId, identityKey: fromIdentity } },
   });
   if (blocked) return true;
-  const knownChat = await tx.conversation.findFirst({
-    where: { ownerId: userId, participantKeys: { has: fromIdentity } },
+  // "Known" means a real (non-spam) email already sits in a chat with this sender.
+  // Not just "a chat exists": the chat for this very email is created before this
+  // check, and a spammer's second email would otherwise count as known.
+  const knownChat = await tx.mailboxEntry.findFirst({
+    where: {
+      userId,
+      isSpam: false,
+      conversation: { participantKeys: { has: fromIdentity } },
+    },
     select: { id: true },
   });
   let knownContact = false;

@@ -15,10 +15,22 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 | 6 | Telephony: IVR and SMS signup | code done; real call test pending | | 195 unit tests; simulators in the demo console; Twilio signature checks; SMSGate JOIN gate; public-url.sh. Needs Docker + Twilio/SMSGate accounts for the real test |
 | 7 | Web client | code done; live data check pending | | Checked with stubbed data: /login (bad number, wrong code, sign-in back to /mail), inbox with thread grouping and unread count in the title, j/k/o/u/r/c/?, thread cards (folded, sandboxed HTML, Replied link), reply and new email in the floating window (minimize, full screen, quiet draft save), drafts, search with highlights, bulk trash and restore, settings tabs, log out. 195 + 22 tests pass |
 | 8 | Hardening | done (CI not run yet: no GitHub remote) | | Route code-splitting (main 1,125 → 606 KB); contrast audit script, 3 colours fixed; sign-up SMS cap; docs/SECURITY.md; GitHub Actions (typecheck, lint, tests, contrast, audit; full stack with smoke + integration tests). Playwright cut (needs the stack) |
-| 9 | Docs and fresh-clone test | not started | | |
+| 9 | Docs and fresh-clone test | docs done; compose test pending Docker | | README, ARCHITECTURE, SECURITY, CHECKLIST. Fresh clone installs, typechecks, lints, tests and builds with no .env. `docker compose up` + smoke.sh still to run (CI does it on every push) |
 | 10 | APK (stretch, likely cut; PWA instead) | not started | | |
 
 ## Known issues
-- Docker Desktop not installed yet on the dev machine: compose and smoke.sh not run.
+- Docker Desktop not installed yet on the dev machine: compose, smoke.sh and the
+  integration tests have not run locally. Every screen was checked in a browser
+  against a stubbed API. First thing to do once Docker is in: `docker compose up -d`,
+  `./scripts/smoke.sh`, `npm run test:integration -w apps/server`, then walk the
+  demo story (README) and tick docs/CHECKLIST.md.
+- CI has not run yet: there is no GitHub remote. Push to GitHub to start it.
+- Real phone tests (Twilio call, SMSGate texts, WebOTP auto-fill) need the tunnel and devices.
+- README screenshots: slots are ready in a comment at the top.
+
 
 ## Cut from scope (and why)
+- Web search filter dropdown (from / attachment / unread): cut list of Phase 7; plain search covers words and senders.
+- Playwright browser tests: need the running stack; CI runs smoke + integration tests instead.
+- Chat info media grid: cut list of Phase 5b.
+- APK (Phase 10): the installable PWA covers "app on the home screen".

@@ -668,3 +668,54 @@ once.
    `docker compose up` (no .env, as a judge would) and runs the smoke test
    and the API integration tests against it. Every screen was also checked
    by hand in a phone-sized browser.
+
+## The whole system on one page (for the demo Q&A)
+
+**What it is.** Email where your phone number is your address
+(`9876543210@phonemail.com`). Real email: it has a real SMTP server, and
+Gmail can write to it.
+
+**How people join.** Call the number and press 1 (Twilio IVR), text JOIN
+(Twilio or SMSGate), use the registration portal, or just sign in on the
+phone or web app with a code. Every path ends in the same `createAccount`.
+
+**How mail flows.** Every email, whether it comes from our apps or from
+outside, enters through our SMTP server and one ingest pipeline: parse, clean
+the HTML, score for spam, store the message once with one mailbox entry per
+person, find the conversation by the set of people, then announce it live.
+
+**Two faces, one mailbox.** The phone (`/m`, WhatsApp style) groups entries
+into chats by *who is in them*; the laptop (`/mail`, Gmail style) groups the
+same entries into threads and folders. Star, read or trash on one and the
+other shows it, because it's the same row.
+
+**The rules, enforced by the server.** Reply once per email (422 otherwise).
+Inside a chat the recipients are fixed (422 if you try to add someone). An
+SMS alert only if you have no active mobile-app session. Aliases can't be
+reserved names and are held 30 days after deletion.
+
+**Live.** Redis carries events from whichever process made the change to the
+api, which pushes them to your open tabs over Socket.IO: bubbles appear,
+ticks turn blue, the web inbox refreshes.
+
+**SMS.** A chain of providers: SMSGate (an Android phone, exact text, free),
+then Twilio (trial: a template), then the console (demo). With zero
+credentials everything still works, and the demo console shows every SMS.
+
+**Safety.** Codes stored as keyed hashes with limits; short-lived cookies with
+rotating refresh tokens; CSRF header; zod on every input; HTML cleaned, then
+sandboxed with no scripts; attachments typed by their bytes; no open relay;
+signed webhooks; rate limits; non-root containers. Details: docs/SECURITY.md.
+
+**Quality.** 201 server and 22 web unit tests, integration tests and a smoke
+test against the running stack, a contrast check for every colour, English,
+Hindi and Tamil, and CI that starts the whole stack with no `.env`.
+
+**Numbers worth remembering.** 9 containers. 5-minute codes, 5 tries, 30 s
+between codes. 15-minute access cookie, 30-day refresh. 30 emails a minute.
+25 MB per email. 3 sign-up texts per number per hour. Main web bundle about
+180 KB gzipped, with every screen loaded on demand.
+
+**If something breaks in the demo.** `docker compose ps`, then
+`docker compose logs api`. The demo console works without Twilio or SMSGate,
+so the story can always be shown with the simulators.

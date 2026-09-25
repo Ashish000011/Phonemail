@@ -2,16 +2,22 @@
  * A tiny browser stand-in for integration tests: keeps cookies, adds the CSRF
  * header, signs in with the demo code. Talks to the stack through nginx.
  */
-export const BASE_URL = process.env.BASE_URL ?? 'http://localhost:8080';
+// Not BASE_URL: Vitest fills process.env.BASE_URL with Vite's "/" and the tests
+// would quietly skip.
+export const BASE_URL = process.env.PHONEMAIL_URL ?? 'http://localhost:8080';
 export const SMTP_HOST = process.env.SMTP_HOST ?? 'localhost';
 export const SMTP_PORT = Number(process.env.SMTP_PORT ?? 2525);
 
 export async function stackIsUp(): Promise<boolean> {
+  let up: boolean;
   try {
-    return (await fetch(`${BASE_URL}/api/health`)).ok;
+    up = (await fetch(`${BASE_URL}/api/health`)).ok;
   } catch {
-    return false;
+    up = false;
   }
+  // Locally the tests skip without the stack; in CI that would hide a broken setup.
+  if (!up && process.env.CI) throw new Error(`The stack is not reachable at ${BASE_URL}`);
+  return up;
 }
 
 /** A random, valid Indian mobile number, so every test run uses fresh accounts. */

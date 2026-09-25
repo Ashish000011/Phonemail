@@ -222,3 +222,8 @@ why. The AI assistant adds to this list during the build; the README links here.
 76. Spam's "known sender" discount applies only when a non-spam email already
     sits in a chat with that sender; merely having a chat is not enough
     (the chat for the incoming email itself is created first).
+77. Twilio's current free trial gives a shared number that can't take our
+    webhooks for incoming calls, rejects an explicit `Method` on API calls,
+    and delivers call webhooks unsigned through a proxy. So the live demo
+    uses "Call me" (Twilio calls the user), unsigned trial webhooks are
+    confirmed by looking the call up at Twilio, and all TwiML URLs are absolute.

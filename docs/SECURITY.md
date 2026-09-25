@@ -69,6 +69,11 @@ maps to the checklist in `docs/spec/09-quality.md`.
 
 ## Webhooks (Twilio and SMSGate)
 - Twilio requests are checked against Twilio's HMAC-SHA1 signature.
+- Twilio trial accounts deliver call webhooks through a proxy that drops the
+  signature. Only then (`TWILIO_TRIAL=true`, no signature at all) PhoneMail
+  looks the call up at Twilio with its own credentials and continues only if
+  it belongs to our account, has the same numbers and is still in progress.
+  A forged or replayed request fails that lookup.
 - The SMSGate webhook sits behind a secret path segment, and optionally
   SMSGate's HMAC signature with a 5-minute freshness window.
 - At most 3 sign-up texts per phone number per hour, so repeated calls or

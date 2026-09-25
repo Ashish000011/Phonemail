@@ -7,7 +7,7 @@ registration portal, or in the apps. Read your mail as **WhatsApp-style chats
 on your phone** or in a **Gmail-style inbox on your laptop**. If you don't use
 the mobile app, an SMS tells you when an email arrives.
 
-Built by Ashish Bhart for the AlphaStack 7-Day Buildathon, NIT Trichy.
+Built by Ashish Bharti for the AlphaStack 7-Day Buildathon, NIT Trichy.
 
 <!--
   Screenshots (Ashish: save these three files, then remove this comment's

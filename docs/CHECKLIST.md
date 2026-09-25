@@ -26,9 +26,11 @@ Legend:
 - [x] Mobile: language → terms → number → OTP → chats, with the "find your
   number" sheet at the number step. Live at 375 px. WebOTP auto-fill:
   **pending device** (Android Chrome + real SMS).
-- [ ] Password fallback with `AUTH_MODE=password`. Unit (Argon2id, minimum
-  length, temporary PIN); the forced "choose a password" screen checked in
-  the browser. Not yet run with `AUTH_MODE=password` on the stack.
+- [x] Password fallback with `AUTH_MODE=password`. Live (API): a new number
+  signs up with a password; a wrong one is refused; codes are off; a phone-call
+  sign-up hears a temporary PIN, which signs in but blocks everything
+  (`PASSWORD_CHANGE_REQUIRED`) until a new password is set, after which the PIN
+  stops working. Unit (Argon2id, minimum length, temporary PIN).
 
 ## Mobile
 - [x] Compose from the bottom-right button; start a chat by searching a number. Live (compose).

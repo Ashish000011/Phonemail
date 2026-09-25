@@ -22,7 +22,6 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 - Verified on the real stack (25 Sep): 8 containers healthy, 14 smoke checks, 19 integration
   tests, and the demo story by hand (see docs/CHECKLIST.md). Four bugs found and fixed.
 - Still to do with devices: a real Twilio call and SMS, SMSGate texts, WebOTP auto-fill on Android.
-- Not yet run on the stack: `AUTH_MODE=password`.
 - README screenshots: slots are ready in a comment at the top.
 
 ## Cut from scope (and why)

@@ -9,16 +9,22 @@ Legend:
   (`npm run test:integration -w apps/server`, 19 tests, also run in CI).
 - **Smoke**: `./scripts/smoke.sh` against the running stack (14 checks).
 - **Unit**: unit tests (`npm test`).
-- **Pending device**: needs a real phone, the Twilio trial or SMSGate.
+- **Real device**: a real phone, through the Twilio trial or SMSGate.
+- **Pending device**: not yet tried on a real phone.
 
 ## Accounts
 - [x] IVR: call the number, press 1 → account + confirmation SMS.
   Live through the demo console simulator (address read digit by digit, SMS
-  in the feed); Unit (TwiML, IVR script, Twilio signatures). A real call:
-  **pending device**.
+  in the feed); Unit (TwiML, IVR script, Twilio signatures). Real device
+  (25 Sep): Twilio's "Call me" rang the builder's phone, played the menu, and
+  pressing 1 read out the existing account. The trial's shared number can't
+  take incoming calls (DECISIONS 77).
 - [x] SMS: text JOIN → account + reply. Live through the simulator
   (created + welcome SMS; a text without the keyword is ignored and not
-  logged); Unit. Real SMS: **pending device**.
+  logged); Unit. Real device (25 Sep, SMSGate): JOIN from a second phone
+  created an account (channel `sms`) and the welcome SMS arrived; JOIN from
+  an existing number got the "already have" reply; other texts were ignored.
+  The gateway phone needs RCS chats off (DECISIONS 78).
 - [x] Portal: phone + OTP creates an account; nobody is signed in; a second
   try says "already registered". Live (API); fields reset: Browser.
 - [x] Web client: phone + OTP, one Next button, Terms line above the button.
@@ -56,7 +62,8 @@ Legend:
 - [x] Users without a mobile session get the SMS; mobile users don't.
   Live: Arjun (web) got "You have received an email from Priya Sharma …
   Subject: Re: Tickets booked."; Priya (mobile) got none. Integration; Unit.
-  Real SMS: **pending device**.
+  Real device (25 Sep): the alert went out through SMSGate with the exact
+  text, and through Twilio as the trial's template.
 
 ## Safety
 - [x] Malicious HTML is rendered harmlessly. Live: the demo console's

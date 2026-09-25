@@ -743,3 +743,25 @@ Each fix came with an integration test that failed first, then passed.
 19 integration tests and 14 smoke checks against the running stack (also in
 CI on every push), and the whole demo story done by hand on the real stack.
 The four bugs above were found exactly that way.
+
+## Real phones: what the Twilio trial and SMSGate taught us
+
+- **Twilio's free trial** gives a shared number that can't receive calls for
+  us, so the demo uses "Call me": Twilio calls your phone and plays our IVR.
+  Trial webhooks come through a Twilio proxy without a signature, so we ask
+  Twilio's API whether the call is real, ours and still live before
+  answering. The trial only sends ready-made SMS templates, which is why
+  SMSGate exists here.
+- **SMSGate** turns an Android phone into the SMS gateway: our worker asks
+  its cloud to send a text, and the phone forwards every text it receives
+  to our webhook. PhoneMail acts only on JOIN/HELP and forgets the rest.
+- **Why a JOIN text first went missing:** Google Messages sends "chats" (RCS)
+  between two phones that both have it on, over the internet. An SMS
+  gateway only sees real SMS. Turning RCS off on the gateway phone makes
+  everyone else's phone fall back to SMS; nobody else changes anything.
+- **OPPO battery saving** paused the SMSGate app in the background, so it
+  stopped forwarding. Allowing background activity fixed it.
+
+**Judge question: what if a judge's text arrives as a chat?** The gateway
+phone has RCS off, so their phone sends SMS. If it's ever slow, the demo
+console's SMS simulator runs the exact same sign-up code.

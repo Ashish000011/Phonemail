@@ -12,7 +12,7 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 | 4 | Mobile UI: design system, onboarding, home | done, verified on the stack | | Onboarding screens 1–4 checked in the browser at 360 px (en/hi), incl. keyboard flow, demo banner, auto-submit; Home, selection mode and drawer checked with stubbed data. PWA builds (manifest + icons + service worker) |
 | 5a | Mobile UI: chat screen | done, verified on the stack | | Checked at 390 px with stubbed data: day labels, unread divider, quotes, attachments, clamp; long-press sheet, reply bar, optimistic send, reply-once, Enter → reader, Escape closes. Lint, typecheck, 195 + 5 tests pass |
 | 5b | Mobile UI: reader, composer, chat info, settings | done, verified on the stack | | Checked at 390 px with stubbed data: reader (sandboxed HTML, Show images, inline images, details, Reply → reply mode), composer (Home chips + suggestions + invalid chip, Cc/Bcc, group hint, From picker, autosave, Save draft dialog, resume draft), chat info (rename, members → 1:1), all settings screens incl. Tamil switch, alias live check, avatar crop, forced password. 195 + 22 tests pass; 2 new integration tests |
-| 6 | Telephony: IVR and SMS signup | done (simulators live; real call pending device) | | 195 unit tests; simulators in the demo console; Twilio signature checks; SMSGate JOIN gate; public-url.sh. Needs Docker + Twilio/SMSGate accounts for the real test |
+| 6 | Telephony: IVR and SMS signup | done, verified with real phones | | Simulators in the demo console; Twilio signature checks; SMSGate JOIN gate; public-url.sh. Real (25 Sep): Twilio "Call me" IVR, Twilio template SMS, SMSGate sign-in codes, exact-text alerts, and JOIN sign-up from a second phone |
 | 7 | Web client | done, verified on the stack | | Checked with stubbed data: /login (bad number, wrong code, sign-in back to /mail), inbox with thread grouping and unread count in the title, j/k/o/u/r/c/?, thread cards (folded, sandboxed HTML, Replied link), reply and new email in the floating window (minimize, full screen, quiet draft save), drafts, search with highlights, bulk trash and restore, settings tabs, log out. 195 + 22 tests pass |
 | 8 | Hardening | done (CI not run yet: no GitHub remote) | | Route code-splitting (main 1,125 → 606 KB); contrast audit script, 3 colours fixed; sign-up SMS cap; docs/SECURITY.md; GitHub Actions (typecheck, lint, tests, contrast, audit; full stack with smoke + integration tests). Playwright cut (needs the stack) |
 | 9 | Docs and fresh-clone test | done, verified on the stack | | README, ARCHITECTURE, SECURITY, CHECKLIST. Fresh clone installs, typechecks, lints, tests and builds with no .env. `docker compose up` + smoke.sh still to run (CI does it on every push) |
@@ -21,7 +21,8 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 ## Known issues
 - Verified on the real stack (25 Sep): 8 containers healthy, 14 smoke checks, 19 integration
   tests, and the demo story by hand (see docs/CHECKLIST.md). Four bugs found and fixed.
-- Still to do with devices: a real Twilio call and SMS, SMSGate texts, WebOTP auto-fill on Android.
+- Real phones (25 Sep): Twilio "Call me" and SMS, SMSGate codes, alerts and JOIN sign-up all work.
+  SMSGate needs RCS chats off on the gateway phone (DECISIONS 78). Still to try: WebOTP auto-fill on Android.
 - README screenshots: slots are ready in a comment at the top.
 
 ## Cut from scope (and why)

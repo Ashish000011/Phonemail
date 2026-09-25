@@ -204,8 +204,11 @@ codes don't travel through Twilio. That's what SMSGate is for.
 
 1. Install **SMS Gateway for Android** (sms-gate.app) on an Android phone
    with a SIM, open it, turn on **Cloud server**, and note the username and
-   password it shows. In your messaging app, turn RCS/chat features off so
-   texts arrive as plain SMS. Allow the app to run in the background.
+   password it shows. In Google Messages on that phone, turn **RCS chats**
+   off: chat messages travel over the internet and never reach an SMS
+   gateway. People texting the phone change nothing; their phones fall back
+   to SMS. Allow the app to run in the background (battery settings), or
+   phones like OPPO and Xiaomi pause it and texts stop being forwarded.
 2. Put `SMSGATE_USERNAME` and `SMSGATE_PASSWORD` in `.env`, and run
    `./scripts/public-url.sh`. It registers the webhook for incoming texts.
 3. Now sign-in codes arrive by real SMS (Chrome on Android fills them in

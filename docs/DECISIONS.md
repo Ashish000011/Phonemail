@@ -227,3 +227,10 @@ why. The AI assistant adds to this list during the build; the README links here.
     and delivers call webhooks unsigned through a proxy. So the live demo
     uses "Call me" (Twilio calls the user), unsigned trial webhooks are
     confirmed by looking the call up at Twilio, and all TwiML URLs are absolute.
+78. SMS sign-up needs a real SMS. Google Messages sends chats between two
+    RCS phones over the internet, and no SMS gateway can see those. So the
+    SMSGate phone keeps RCS chats off; senders then fall back to SMS on
+    their own (Google may take a while to notice the switch). Only the
+    gateway phone changes a setting, never the people texting it. Phones
+    that pause background apps (OPPO, Xiaomi) must let SMSGate run in the
+    background, or forwarding stops.

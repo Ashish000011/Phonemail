@@ -42,15 +42,23 @@ export interface IvrStep {
   account?: { address: string; created: boolean };
 }
 
+/**
+ * Full https:// addresses for Twilio. Relative ones would do, except that trial
+ * accounts fetch our TwiML through a Twilio proxy and resolve them against it.
+ */
+function webhookUrl(path: string): string {
+  return env.PUBLIC_BASE_URL.replace(/\/$/, '') + path;
+}
+
 /** First TwiML of a call: the menu. If nothing is pressed, one retry, then goodbye. */
 export function ivrWelcome(retry: boolean): IvrStep {
   const menu = gather(
-    `/webhooks/twilio/voice/menu${retry ? '?retry=1' : ''}`,
+    webhookUrl(`/webhooks/twilio/voice/menu${retry ? '?retry=1' : ''}`),
     say(IVR_TEXT.welcome, voice()),
   );
   const next = retry
     ? say(IVR_TEXT.goodbye, voice()) + hangup()
-    : redirect('/webhooks/twilio/voice?retry=1');
+    : redirect(webhookUrl('/webhooks/twilio/voice?retry=1'));
   return { twiml: response(menu, next), transcript: [IVR_TEXT.welcome] };
 }
 
@@ -100,7 +108,7 @@ export async function ivrMenu(input: {
   if (input.digits !== '1') {
     const next = input.retry
       ? say(IVR_TEXT.goodbye, v) + hangup()
-      : redirect('/webhooks/twilio/voice?retry=1');
+      : redirect(webhookUrl('/webhooks/twilio/voice?retry=1'));
     return {
       twiml: response(say(IVR_TEXT.notAnOption, v), next),
       transcript: input.retry ? [IVR_TEXT.notAnOption, IVR_TEXT.goodbye] : [IVR_TEXT.notAnOption],

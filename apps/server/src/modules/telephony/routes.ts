@@ -4,7 +4,13 @@ import { env } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { requestMeta } from '../../lib/request-meta.js';
 import { handleInboundSms, ivrMenu, ivrWelcome } from './service.js';
-import { response, validTwilioSignature } from './twiml.js';
+import { twilioGet } from '../../providers/twilio-client.js';
+import {
+  response,
+  twilioRecordMatches,
+  twilioRecordToConfirm,
+  validTwilioSignature,
+} from './twiml.js';
 
 type Form = Record<string, string>;
 
@@ -22,20 +28,31 @@ async function verifyTwilio(request: FastifyRequest): Promise<void> {
   if (!env.TWILIO_AUTH_TOKEN) {
     throw new AppError(403, 'FORBIDDEN', 'Twilio is not configured.');
   }
-  const url = env.PUBLIC_BASE_URL.replace(/\/$/, '') + request.url;
   const signature = request.headers['x-twilio-signature'];
   const params = (request.body ?? {}) as Form;
-  if (
-    !validTwilioSignature(
-      env.TWILIO_AUTH_TOKEN,
-      url,
-      params,
-      typeof signature === 'string' ? signature : undefined,
-    )
-  ) {
+  if (typeof signature === 'string') {
+    const url = env.PUBLIC_BASE_URL.replace(/\/$/, '') + request.url;
+    if (validTwilioSignature(env.TWILIO_AUTH_TOKEN, url, params, signature)) return;
     request.log.warn({ url }, 'bad Twilio signature');
     throw new AppError(403, 'FORBIDDEN', 'Bad signature.');
   }
+  // Trial accounts get call webhooks through a Twilio proxy that drops the
+  // signature. Then we ask Twilio itself whether this call is real, ours and live.
+  if (env.TWILIO_TRIAL && (await confirmedByTwilio(params))) return;
+  request.log.warn('unsigned Twilio request');
+  throw new AppError(403, 'FORBIDDEN', 'Bad signature.');
+}
+
+/** Looks the call (or message) up at Twilio with our credentials and compares it. */
+async function confirmedByTwilio(params: Form): Promise<boolean> {
+  const accountSid = env.TWILIO_ACCOUNT_SID ?? '';
+  const target = twilioRecordToConfirm(params, accountSid);
+  if (!target) return false;
+  const record = await twilioGet(
+    env,
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/${target.kind}/${target.sid}.json`,
+  ).catch(() => null);
+  return record !== null && twilioRecordMatches(params, record, accountSid);
 }
 
 const sendTwiml = (reply: FastifyReply, twiml: string) =>

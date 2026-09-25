@@ -32,6 +32,22 @@ export async function twilioPost(
   return data;
 }
 
+/** Reads one resource (a call, a message); null when Twilio doesn't know it. */
+export async function twilioGet(
+  env: Env,
+  url: string,
+  fetchImpl: FetchFn = fetch,
+): Promise<Record<string, unknown> | null> {
+  const auth = Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+  const response = await fetchImpl(url, {
+    method: 'GET',
+    headers: { Authorization: `Basic ${auth}` },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) return null;
+  return (await response.json().catch(() => null)) as Record<string, unknown> | null;
+}
+
 export function twilioConfigured(env: Env): boolean {
   return Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_PHONE_NUMBER);
 }

@@ -80,3 +80,41 @@ export function validTwilioSignature(
   const actual = Buffer.from(signature);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
+
+/** Call and message ids as Twilio writes them: "CA" (call) or "SM"/"MM" (message) plus 32 hex digits. */
+const TWILIO_SID = /^(CA|SM|MM)[0-9a-f]{32}$/;
+const LIVE_CALL = new Set(['queued', 'ringing', 'in-progress']);
+
+/** Which record to ask Twilio for, to confirm an unsigned webhook. Null = can't confirm. */
+export function twilioRecordToConfirm(
+  params: Record<string, string>,
+  accountSid: string,
+): { kind: 'Calls' | 'Messages'; sid: string } | null {
+  if (!accountSid || params.AccountSid !== accountSid) return null;
+  const callSid = params.CallSid;
+  if (callSid && TWILIO_SID.test(callSid) && callSid.startsWith('CA')) {
+    return { kind: 'Calls', sid: callSid };
+  }
+  const messageSid = params.MessageSid ?? params.SmsSid;
+  if (messageSid && TWILIO_SID.test(messageSid) && !messageSid.startsWith('CA')) {
+    return { kind: 'Messages', sid: messageSid };
+  }
+  return null;
+}
+
+/**
+ * The record Twilio returned matches the webhook: our account, the same
+ * numbers, and (for calls) still happening. A replayed or invented request
+ * fails at least one of these.
+ */
+export function twilioRecordMatches(
+  params: Record<string, string>,
+  record: Record<string, unknown>,
+  accountSid: string,
+): boolean {
+  if (record.account_sid !== accountSid) return false;
+  if (params.To && record.to !== params.To) return false;
+  if (params.From && record.from !== params.From) return false;
+  if (params.CallSid) return LIVE_CALL.has(String(record.status));
+  return true;
+}

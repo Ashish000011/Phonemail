@@ -8,6 +8,8 @@ import {
   say,
   spokenDigits,
   spokenDomain,
+  twilioRecordMatches,
+  twilioRecordToConfirm,
   twilioSignature,
   validTwilioSignature,
 } from '../src/modules/telephony/twiml.js';
@@ -48,15 +50,17 @@ describe('IVR scripts', () => {
   it('first try: menu, then one retry if nothing is pressed', () => {
     const step = ivrWelcome(false);
     expect(step.transcript).toEqual([IVR_TEXT.welcome]);
-    expect(step.twiml).toContain('action="/webhooks/twilio/voice/menu"');
+    expect(step.twiml).toContain('action="http://localhost:8080/webhooks/twilio/voice/menu"');
     expect(step.twiml).toContain(
-      '<Redirect method="POST">/webhooks/twilio/voice?retry=1</Redirect>',
+      '<Redirect method="POST">http://localhost:8080/webhooks/twilio/voice?retry=1</Redirect>',
     );
   });
 
   it('retry: menu again, then goodbye and hang up', () => {
     const step = ivrWelcome(true);
-    expect(step.twiml).toContain('action="/webhooks/twilio/voice/menu?retry=1"');
+    expect(step.twiml).toContain(
+      'action="http://localhost:8080/webhooks/twilio/voice/menu?retry=1"',
+    );
     expect(step.twiml).toContain('Goodbye');
     expect(step.twiml).toContain('<Hangup/>');
     expect(step.twiml).not.toContain('<Redirect');
@@ -130,4 +134,46 @@ describe('inbound SMS rules', () => {
       });
     },
   );
+});
+
+describe('unsigned webhooks on trial accounts are confirmed with Twilio', () => {
+  const account = 'AC' + 'a'.repeat(32);
+  const callSid = 'CA' + 'b'.repeat(32);
+  const params = {
+    AccountSid: account,
+    CallSid: callSid,
+    From: '+17372508034',
+    To: '+919876543210',
+  };
+  const live = {
+    account_sid: account,
+    status: 'in-progress',
+    from: '+17372508034',
+    to: '+919876543210',
+  };
+
+  it('asks Twilio for the call named in the webhook', () => {
+    expect(twilioRecordToConfirm(params, account)).toEqual({ kind: 'Calls', sid: callSid });
+  });
+
+  it('asks nothing for another account, a malformed id or no id', () => {
+    expect(
+      twilioRecordToConfirm({ ...params, AccountSid: 'AC' + 'c'.repeat(32) }, account),
+    ).toBeNull();
+    expect(twilioRecordToConfirm({ ...params, CallSid: '../Messages' }, account)).toBeNull();
+    expect(twilioRecordToConfirm({ AccountSid: account }, account)).toBeNull();
+    expect(twilioRecordToConfirm(params, '')).toBeNull();
+  });
+
+  it('accepts a live call on our account with the same numbers', () => {
+    expect(twilioRecordMatches(params, live, account)).toBe(true);
+  });
+
+  it('refuses a finished call (a replayed request), another account or other numbers', () => {
+    expect(twilioRecordMatches(params, { ...live, status: 'completed' }, account)).toBe(false);
+    expect(
+      twilioRecordMatches(params, { ...live, account_sid: 'AC' + 'c'.repeat(32) }, account),
+    ).toBe(false);
+    expect(twilioRecordMatches(params, { ...live, to: '+911111111111' }, account)).toBe(false);
+  });
 });

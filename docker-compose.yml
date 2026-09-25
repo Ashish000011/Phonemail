@@ -193,7 +193,8 @@ services:
   #   docker compose logs cloudflared | grep trycloudflare.com
   cloudflared:
     image: cloudflare/cloudflared:latest
-    command: ['tunnel', '--no-autoupdate', '--url', 'http://web:8080']
+    # http2 (TCP 443) instead of the default QUIC (UDP 7844), which many networks block.
+    command: ['tunnel', '--no-autoupdate', '--protocol', 'http2', '--url', 'http://web:8080']
     profiles: ['public']
     depends_on:
       web:

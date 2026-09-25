@@ -117,8 +117,8 @@ export async function demoRoutes(fastify: FastifyInstance) {
         {
           To: phone.e164,
           From: env.TWILIO_PHONE_NUMBER ?? '',
+          // POST is Twilio's default; trial accounts reject an explicit Method.
           Url: `${base}/webhooks/twilio/voice`,
-          Method: 'POST',
         },
       ).catch((err: Error) => {
         throw new AppError(502, 'BAD_REQUEST', err.message);

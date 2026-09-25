@@ -65,3 +65,23 @@ export function fileSize(bytes: number, language: string): string {
   const digits = unit === 0 || value >= 10 ? 0 : 1;
   return `${new Intl.NumberFormat(intlLocale(language), { maximumFractionDigits: digits }).format(value)} ${units[unit]}`;
 }
+
+/** Dates in the web client's list, Gmail style: "3:09 pm" today, "12 Sept" this year, "12/09/2025" before. */
+export function listDate(iso: string, language: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  if (sameDay(iso, now.toISOString())) return timeOfDay(iso, language);
+  const options: Intl.DateTimeFormatOptions =
+    date.getFullYear() === now.getFullYear()
+      ? { day: 'numeric', month: 'short' }
+      : { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return new Intl.DateTimeFormat(intlLocale(language), options).format(date);
+}
+
+/** Full date and time for headers: "25 Sept 2026, 3:13 pm". */
+export function fullDate(iso: string, language: string): string {
+  return new Intl.DateTimeFormat(intlLocale(language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(iso));
+}

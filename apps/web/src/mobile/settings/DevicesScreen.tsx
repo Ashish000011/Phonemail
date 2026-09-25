@@ -16,7 +16,16 @@ import { describeDevice } from './device';
 import { Row, Section, SettingsPage } from './parts';
 
 export function DevicesScreen() {
-  return <RequireUser>{() => <Devices />}</RequireUser>;
+  const { t } = useTranslation();
+  return (
+    <RequireUser>
+      {() => (
+        <SettingsPage title={t('settings.devices')}>
+          <DevicesPanel />
+        </SettingsPage>
+      )}
+    </RequireUser>
+  );
 }
 
 /** "Active now", "5 minutes ago", "2 days ago". */
@@ -30,7 +39,7 @@ function lastActive(iso: string, language: string, t: (key: string) => string): 
 }
 
 /** Settings → Devices: where you're signed in, and signing out the ones you don't recognise. */
-function Devices() {
+export function DevicesPanel() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const errorText = useErrorText();
@@ -69,7 +78,7 @@ function Devices() {
   const others = list.filter((s) => !s.current).length;
 
   return (
-    <SettingsPage title={t('settings.devices')}>
+    <>
       <Section footer={t('devices.explain')}>
         {sessions.isPending ? (
           <SkeletonRows count={2} />
@@ -133,6 +142,6 @@ function Devices() {
       >
         <p>{t('devices.signOutOthersBody', { count: others })}</p>
       </Dialog>
-    </SettingsPage>
+    </>
   );
 }

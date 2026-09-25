@@ -17,11 +17,20 @@ import { toast } from '../ui/toast';
 import { Section, SettingsPage, ToggleRow, useUpdateMe } from './parts';
 
 export function PrivacyScreen() {
-  return <RequireUser>{(me) => <Privacy me={me} />}</RequireUser>;
+  const { t } = useTranslation();
+  return (
+    <RequireUser>
+      {(me) => (
+        <SettingsPage title={t('settings.privacy')}>
+          <PrivacyPanel me={me} />
+        </SettingsPage>
+      )}
+    </RequireUser>
+  );
 }
 
 /** Settings → Privacy: read receipts, remote images, and the people you blocked. */
-function Privacy({ me }: { me: Me }) {
+export function PrivacyPanel({ me }: { me: Me }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const errorText = useErrorText();
@@ -44,7 +53,7 @@ function Privacy({ me }: { me: Me }) {
   }
 
   return (
-    <SettingsPage title={t('settings.privacy')}>
+    <>
       <Section>
         <ToggleRow
           title={t('privacy.readReceipts')}
@@ -97,6 +106,6 @@ function Privacy({ me }: { me: Me }) {
           <p className="px-6 py-3 text-[0.9375rem] text-text-muted">{t('privacy.noneBlocked')}</p>
         )}
       </Section>
-    </SettingsPage>
+    </>
   );
 }

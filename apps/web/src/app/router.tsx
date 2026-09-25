@@ -1,8 +1,7 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { DeviceRedirect } from './DeviceRedirect';
 import { LegalPage } from './LegalPage';
 import { NotFound } from './NotFound';
-import { Placeholder } from './Placeholder';
 import { RegisterPage } from '../portal/RegisterPage';
 import { DemoConsole } from '../demo/DemoConsole';
 import { HomeRoute, MobileShell } from '../mobile/MobileShell';
@@ -20,10 +19,15 @@ import { PrivacyScreen } from '../mobile/settings/PrivacyScreen';
 import { DevicesScreen } from '../mobile/settings/DevicesScreen';
 import { HelpScreen } from '../mobile/settings/HelpScreen';
 import { PasswordScreen } from '../mobile/settings/PasswordScreen';
+import { LoginPage } from '../web/LoginPage';
+import { MailListRoute, SearchList } from '../web/MailList';
+import { ThreadView } from '../web/ThreadView';
+import { WebSettings } from '../web/WebSettings';
+import { WebShell } from '../web/WebShell';
 
 /**
  * Every top-level route. /m is the WhatsApp-style mobile client, /mail the
- * Gmail-style web client (Phase 7), /register the portal, /demo the demo console.
+ * Gmail-style web client, /login its sign-in, /register the portal, /demo the demo console.
  */
 export const router = createBrowserRouter([
   { path: '/', element: <DeviceRedirect /> },
@@ -51,8 +55,19 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFound /> },
     ],
   },
-  { path: '/mail/*', element: <Placeholder titleKey="routes.mail" switchTo="m" /> },
-  { path: '/login', element: <Placeholder titleKey="routes.login" /> },
+  {
+    path: '/mail',
+    element: <WebShell />,
+    children: [
+      { index: true, element: <Navigate to="inbox" replace /> },
+      { path: 'search', element: <SearchList /> },
+      { path: 'settings', element: <WebSettings /> },
+      { path: 'settings/:tab', element: <WebSettings /> },
+      { path: ':folder', element: <MailListRoute /> },
+      { path: ':folder/:threadId', element: <ThreadView /> },
+    ],
+  },
+  { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/demo', element: <DemoConsole /> },
   { path: '/terms', element: <LegalPage kind="terms" /> },

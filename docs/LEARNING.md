@@ -560,3 +560,52 @@ in the same step.
 5. **What does "Log out of all other devices" do?** It revokes every other
    session in the database, so their next request is refused right away,
    not when their 15-minute token expires.
+
+## Phase 7: the Gmail-style web client
+
+### How the same data powers two very different UIs
+Every email is stored once (a `Message`) with one `MailboxEntry` per person
+who has it (read, starred, trashed, spam are per person). The two clients
+just ask different questions of the same rows:
+- **The phone** asks "which chats do I have?" Entries are grouped by
+  *conversation* (the set of people), newest first, and shown as bubbles.
+- **The web** asks "what is in this folder?" The same entries are grouped by
+  *thread* (Message-ID / References), 50 per page, and shown as Gmail rows.
+Star an email on the web and the phone's bubble gets a star, because it is
+the same entry. Send from the web to two people and the phone shows a group
+chat, because the server keys conversations the same way for both.
+
+### What is shared and what isn't
+- **Shared:** the API, the zod schemas, the composer (one component with a
+  "screen" and a "window" layout), the reader's sandboxed email frame, the
+  settings panels, translations, and the rules (all enforced by the server).
+- **Different on purpose:** the chrome. The phone looks like WhatsApp
+  (bubbles, green bar, swipe to reply); the web looks like Gmail (left nav,
+  dense rows, toolbar, floating compose window, keyboard shortcuts).
+
+### Keyboard shortcuts
+`useHotkeys` listens on the window and ignores keys while you type in a
+field, while a dialog is open, or with Ctrl/Alt/Cmd held. Each screen
+registers its own keys: the list knows j/k/o/x/s/#, the thread knows
+r/s/#/u, the shell knows c, / and ?.
+
+### Live updates on the web
+The same Socket.IO events as the phone. The web's lists are paged and
+grouped, so instead of editing them in place it refetches what is on
+screen, gives the new row a short yellow highlight, and the tab title shows
+"(3) Inbox".
+
+### Judge questions
+1. **Is the web client a separate backend?** No. Same API, same database,
+   same rules. It is a different way of looking at the same mailbox entries.
+2. **I sent from the web to two people. Why is there a group chat on the
+   phone?** Conversations are keyed by the set of people in them, whichever
+   client sent the email.
+3. **Can I reply twice from the web?** No. The Reply button turns into
+   "Replied · see your reply", and the server returns 422 anyway.
+4. **Can I use it without a mouse?** Yes: c compose, / search, j/k move,
+   o open, r reply, s star, # trash, u back, ? shows the list. Every control
+   is also reachable with Tab and has a visible focus ring.
+5. **How does the login know I'm new?** It doesn't need to. The same Next
+   button sends a code and then signs you in; if the number has no account,
+   verifying the code creates it (channel "web").

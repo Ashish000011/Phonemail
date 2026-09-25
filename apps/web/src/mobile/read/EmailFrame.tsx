@@ -71,10 +71,13 @@ export function EmailFrame({
   html,
   showRemote,
   title,
+  // One screen tall by default: long emails scroll inside, and the page scrolls to reach it.
+  heightClass = 'h-[calc(100dvh-8.5rem)] min-h-[320px]',
 }: {
   html: string;
   showRemote: boolean;
   title: string;
+  heightClass?: string;
 }) {
   const [inline, setInline] = useState<Record<string, string>>({});
 
@@ -104,8 +107,7 @@ export function EmailFrame({
       srcDoc={srcDoc}
       sandbox="allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
-      // One screen tall: long emails scroll inside, and the page scrolls to reach it.
-      className="block h-[calc(100dvh-8.5rem)] min-h-[320px] w-full border-0 bg-white"
+      className={`block w-full border-0 bg-white ${heightClass}`}
     />
   );
 }

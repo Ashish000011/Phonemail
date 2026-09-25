@@ -18,7 +18,16 @@ import { Section, SettingsPage, useUpdateMe } from './parts';
 const HOLD_DAYS = 30;
 
 export function AliasesScreen() {
-  return <RequireUser>{(me) => <Aliases me={me} />}</RequireUser>;
+  const { t } = useTranslation();
+  return (
+    <RequireUser>
+      {(me) => (
+        <SettingsPage title={t('settings.aliases')}>
+          <AliasesPanel me={me} />
+        </SettingsPage>
+      )}
+    </RequireUser>
+  );
 }
 
 /** Waits until typing pauses, so the availability check doesn't run on every key. */
@@ -37,7 +46,7 @@ function useDebounced(value: string, ms: number): string {
  * one with a live check that says why a name can't be used, and delete one
  * (it stays reserved for 30 days so nobody else gets your mail).
  */
-function Aliases({ me }: { me: Me }) {
+export function AliasesPanel({ me }: { me: Me }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const errorText = useErrorText();
@@ -112,7 +121,7 @@ function Aliases({ me }: { me: Me }) {
   ];
 
   return (
-    <SettingsPage title={t('settings.aliases')}>
+    <>
       <Section footer={t('aliases.explain')}>
         <h2 id="send-as" className="px-6 pt-4 pb-1 text-[0.875rem] font-medium text-brand">
           {t('aliases.sendAs')}
@@ -236,6 +245,6 @@ function Aliases({ me }: { me: Me }) {
       >
         <p>{t('aliases.deleteBody', { days: HOLD_DAYS })}</p>
       </Dialog>
-    </SettingsPage>
+    </>
   );
 }

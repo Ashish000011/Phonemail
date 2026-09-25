@@ -190,3 +190,14 @@ why. The AI assistant adds to this list during the build; the README links here.
     so the link can be added without rebuilding.
 66. In-app sound is a two-note chime made with Web Audio (no sound file),
     on by default, and the setting is kept per device in localStorage.
+67. The web search filter dropdown (from / has attachment / unread) is cut,
+    as the Phase 7 cut list allows. Plain search already matches words and
+    sender addresses.
+68. One compose window at a time on the web. Closing it with content saves a
+    draft quietly (like Gmail); the phone asks "Save draft?" instead.
+69. The web list is paged and grouped by thread, so live events refetch the
+    visible queries instead of patching them in place (the phone patches its
+    chat cache directly). New emails get a 2.5-second highlight.
+70. The composer is one component with two layouts (mobile full screen, web
+    floating window), so locked recipients, reply-once and drafts are
+    written once for both clients.

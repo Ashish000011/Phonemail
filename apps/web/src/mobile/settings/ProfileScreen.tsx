@@ -45,7 +45,16 @@ async function squarePhoto(file: File): Promise<Blob> {
 }
 
 export function ProfileScreen() {
-  return <RequireUser>{(me) => <Profile me={me} />}</RequireUser>;
+  const { t } = useTranslation();
+  return (
+    <RequireUser>
+      {(me) => (
+        <SettingsPage title={t('profile.title')}>
+          <ProfilePanel me={me} />
+        </SettingsPage>
+      )}
+    </RequireUser>
+  );
 }
 
 /** A text setting that saves when you leave the field (or press Enter). */
@@ -98,7 +107,7 @@ function EditableField({
 }
 
 /** Settings → Profile: photo, name, about, and your number and address to copy. */
-function Profile({ me }: { me: Me }) {
+export function ProfilePanel({ me }: { me: Me }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const errorText = useErrorText();
@@ -141,7 +150,7 @@ function Profile({ me }: { me: Me }) {
   }
 
   return (
-    <SettingsPage title={t('profile.title')}>
+    <>
       <Section>
         <div className="flex flex-col items-center gap-3 py-6">
           <div className="relative">
@@ -218,6 +227,6 @@ function Profile({ me }: { me: Me }) {
           }
         />
       </Section>
-    </SettingsPage>
+    </>
   );
 }

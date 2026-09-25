@@ -66,6 +66,7 @@ export const Bubble = memo(function Bubble({
   const reduceMotion = useReducedMotion();
   const outgoing = message.direction === 'outgoing';
   const canReply = !message.repliedAt && !pending;
+  const parentName = message.parent?.fromMe ? t('chat.you') : message.parent?.fromName;
 
   const x = useMotionValue(0);
   const iconOpacity = useTransform(x, [0, SWIPE_THRESHOLD * 0.6], [0, 1]);
@@ -161,10 +162,10 @@ export const Bubble = memo(function Bubble({
                 }}
                 className="my-1 flex w-full flex-col rounded-md border-l-4 bg-black/[0.05] px-2 py-1 text-left"
                 style={{ borderColor: 'var(--color-brand)' }}
-                aria-label={t('chat.repliedTo', { name: message.parent.fromName })}
+                aria-label={t('chat.repliedTo', { name: parentName })}
               >
                 <span className="text-[0.8125rem] font-medium text-brand">
-                  {message.parent.fromName}
+                  {parentName}
                   {message.parent.conversationTitle && (
                     <span className="font-normal text-text-muted">
                       {' '}

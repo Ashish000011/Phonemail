@@ -314,7 +314,8 @@ function ChatView({
       parent: target
         ? {
             messageId: target.messageId,
-            fromName: target.direction === 'outgoing' ? t('chat.you') : target.from.name,
+            fromName: target.from.name,
+            fromMe: target.direction === 'outgoing',
             subject: target.subject,
             snippet: target.text.slice(0, 140),
             conversationId: id,

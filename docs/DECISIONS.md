@@ -215,3 +215,10 @@ why. The AI assistant adds to this list during the build; the README links here.
     until Prisma ships a fix.
 74. At most 3 sign-up texts per phone number per hour (IVR confirmation and
     SMS replies), so the telephony webhooks can't be used to flood a phone.
+75. Threading: when the email being replied to is already stored, the reply
+    joins that email's thread. Only for unknown parents do we fall back to
+    the first `References` entry. Some clients list only the direct parent
+    in `References`, which split replies-to-replies into new threads.
+76. Spam's "known sender" discount applies only when a non-spam email already
+    sits in a chat with that sender; merely having a chat is not enough
+    (the chat for the incoming email itself is created first).

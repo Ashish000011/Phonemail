@@ -90,6 +90,8 @@ export const chatMessageSchema = z.object({
     .object({
       messageId: z.string(),
       fromName: z.string(),
+      /** The quoted email is your own: the bubble says "You", like WhatsApp. */
+      fromMe: z.boolean(),
       subject: z.string(),
       snippet: z.string(),
       conversationId: z.string().nullable(),

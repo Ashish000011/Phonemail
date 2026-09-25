@@ -123,6 +123,45 @@ describe.skipIf(!up)('mail engine (against the running stack)', () => {
     expect(inbox.data.items.some((i) => i.subject === subject)).toBe(false);
   });
 
+  it('a reply to a reply stays in the thread, even when References names only the parent', async () => {
+    const id = Date.now();
+    const subject = `Book club ${id}`;
+    const first = `<first-${id}@example.com>`;
+    const second = `<second-${id}@example.com>`;
+    const from = `club${id}@example.com`;
+    await smtp().sendMail({
+      from,
+      to: alice.address,
+      subject,
+      text: 'Chapter 1?',
+      messageId: first,
+    });
+    await smtp().sendMail({
+      from,
+      to: alice.address,
+      subject: `Re: ${subject}`,
+      text: 'Or chapter 2?',
+      messageId: second,
+      inReplyTo: first,
+      references: [first],
+    });
+    await smtp().sendMail({
+      from,
+      to: alice.address,
+      subject: `Re: ${subject}`,
+      text: 'Chapter 2 it is.',
+      inReplyTo: second,
+      references: [second],
+    });
+    // One row for the whole thread, shown by its newest email ("Re: …").
+    const rows = await eventually(async () => {
+      const { data } = await alice.request<MailboxPage>('GET', '/api/mailbox/inbox');
+      const matching = data.items.filter((i) => i.subject.endsWith(subject));
+      return matching.some((i) => i.count === 3) ? matching : undefined;
+    });
+    expect(rows).toHaveLength(1);
+  });
+
   it('is not an open relay', async () => {
     await expect(
       smtp().sendMail({ from: 'x@example.com', to: 'y@example.org', subject: 's', text: 't' }),

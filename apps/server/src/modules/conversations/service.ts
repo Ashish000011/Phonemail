@@ -427,6 +427,7 @@ export async function presentChatMessages(
               const p = people.get(senderKey(parent));
               return p ? personName(p) : (parent.fromName ?? parent.fromAddress);
             })(),
+            fromMe: parent.fromUserId === ownerId,
             subject: parent.subject,
             snippet: parent.snippet,
             conversationId: parentChat,

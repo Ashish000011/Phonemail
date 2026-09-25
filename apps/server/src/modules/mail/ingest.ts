@@ -189,8 +189,10 @@ export async function ingestMessage(input: IngestInput, attempt = 0): Promise<In
         select: { id: true, threadId: true },
       })
     : null;
-  // threadId = root of the References chain, else the parent's thread, else this message.
-  const threadId = references[0] ?? parent?.threadId ?? messageIdHeader;
+  // threadId = the parent's thread when we have the parent (reliable even when a client
+  // lists only the direct parent in References), else the root of the References
+  // chain, else this message starts a thread.
+  const threadId = parent?.threadId ?? references[0] ?? messageIdHeader;
 
   const baseSpamSignals = {
     blocked: false,

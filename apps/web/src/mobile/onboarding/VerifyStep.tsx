@@ -210,7 +210,8 @@ export function VerifyStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
         role="alert"
         className="mt-2 min-h-5 text-center text-[0.875rem] text-danger"
       >
-        {verify.isPending ? t('onboarding.pleaseWait') : expired ? t('onboarding.expired') : error}
+        {/* The button says "Please wait…"; this line is only for problems. */}
+        {verify.isPending ? null : expired ? t('onboarding.expired') : error}
       </p>
 
       {/* For codes typed by hand; a detected or pasted code submits by itself. */}

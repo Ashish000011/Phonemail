@@ -1,5 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { ChatMessagesPage, ConversationPage, DemoSms } from '@phonemail/shared';
+import type {
+  ChatMessagesPage,
+  ConversationPage,
+  DemoSms,
+  MailboxPage,
+  Thread,
+} from '@phonemail/shared';
 import { eventually, stackIsUp, TestClient } from './client.js';
 
 const up = await stackIsUp();
@@ -120,6 +126,36 @@ describe.skipIf(!up)('chats, receipts and SMS alerts (against the running stack)
       },
     );
     expect(data.kind).toBe('direct');
+  });
+
+  it('reporting a chat you replied in hides all of it; Not spam brings all of it back', async () => {
+    const sender = await TestClient.signIn('web');
+    const subject = `Just a trial ${Date.now()}`;
+    const first = await send(sender, { to: [b.address], subject });
+    const chat = await eventually(async () => {
+      const { data } = await b.request<ConversationPage>('GET', '/api/conversations');
+      return data.items.find((c) => c.participants.some((p) => p.address === sender.address));
+    });
+    // b's own reply sits in the chat too; it used to keep the chat on Home.
+    await send(b, { conversationId: chat.id, replyToMessageId: first.messageId, body: 'ok' });
+    expect((await b.request('POST', `/api/conversations/${chat.id}/spam`)).status).toBe(204);
+
+    const chats = await b.request<ConversationPage>('GET', '/api/conversations');
+    expect(chats.data.items.some((c) => c.id === chat.id)).toBe(false);
+    const spam = await b.request<MailboxPage>('GET', '/api/mailbox/spam');
+    const thread = spam.data.items.find((i) => i.subject.endsWith(subject));
+    expect(thread?.count).toBe(2);
+
+    // "Not spam" on the received email alone restores b's reply as well.
+    const { data: full } = await b.request<Thread>('GET', `/api/threads/${thread!.threadId}`);
+    const received = full.messages.find((m) => m.from.address === sender.address)!;
+    const restore = await b.request('POST', '/api/entries/not-spam', { ids: [received.entryId] });
+    expect(restore.status).toBe(204);
+    const messages = await b.request<ChatMessagesPage>(
+      'GET',
+      `/api/conversations/${chat.id}/messages`,
+    );
+    expect(messages.data.items).toHaveLength(2);
   });
 
   it('report spam blocks the sender; Settings lists them and can unblock', async () => {

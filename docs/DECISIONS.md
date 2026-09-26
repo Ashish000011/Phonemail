@@ -270,3 +270,8 @@ why. The AI assistant adds to this list during the build; the README links here.
     assetlinks.json, so the APK showed an address bar. ngrok stays as a
     fallback (`./scripts/public-url.sh ngrok`). reset-demo.sh removes only
     the data volumes, so the Tailscale login (and the address) survive.
+85. Reporting a whole chat as spam moves all its mail to Spam, your own
+    replies included (as Gmail does); before, only received mail moved, so a
+    chat you had replied in vanished and then came back on the next refresh.
+    "Not spam" brings your replies in those chats back with the sender's
+    mail. Found on the real phone; covered by an integration test.

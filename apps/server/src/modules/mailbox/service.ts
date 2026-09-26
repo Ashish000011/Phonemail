@@ -337,9 +337,26 @@ export async function markSpam(userId: string, ids: string[], blockSender: boole
   await announce(userId, ids, { isSpam: true });
 }
 
-/** "Not spam": back to the inbox, and the sender is unblocked with all their mail. */
+/**
+ * "Not spam": back to the inbox, and the sender is unblocked with all their
+ * mail. Your own replies in those chats come back too (reporting a chat moved
+ * them to Spam with it).
+ */
 export async function markNotSpam(userId: string, ids: string[]): Promise<void> {
   await db.mailboxEntry.updateMany({ where: { id: { in: ids }, userId }, data: { isSpam: false } });
+  const chats = await db.mailboxEntry.findMany({
+    where: { id: { in: ids }, userId },
+    select: { conversationId: true },
+    distinct: ['conversationId'],
+  });
+  await db.mailboxEntry.updateMany({
+    where: {
+      userId,
+      direction: 'outgoing',
+      conversationId: { in: chats.map((c) => c.conversationId) },
+    },
+    data: { isSpam: false },
+  });
   for (const identityKey of await senderIdentities(userId, ids)) {
     await db.blockedSender.deleteMany({ where: { userId, identityKey } });
     await db.mailboxEntry.updateMany({

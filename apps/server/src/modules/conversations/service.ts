@@ -580,11 +580,15 @@ export async function trashConversation(ownerId: string, id: string): Promise<vo
   });
 }
 
-/** Report the whole chat as spam: its mail moves to Spam and its people are blocked. */
+/**
+ * Report the whole chat as spam: all its mail moves to Spam (your own replies
+ * too, as in Gmail, or they would keep the chat on Home) and its people are
+ * blocked.
+ */
 export async function spamConversation(ownerId: string, id: string): Promise<void> {
   const conversation = await ownedConversation(ownerId, id);
   await db.mailboxEntry.updateMany({
-    where: { userId: ownerId, conversationId: id, direction: 'incoming' },
+    where: { userId: ownerId, conversationId: id },
     data: { isSpam: true },
   });
   for (const p of conversation.participants) {

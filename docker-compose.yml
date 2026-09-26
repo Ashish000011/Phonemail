@@ -5,8 +5,9 @@
 #   http://localhost:8025   Mailpit (catches mail sent to outside addresses)
 #   localhost:2525          PhoneMail's SMTP server
 #
-# `docker compose --profile public up -d` also starts a Cloudflare quick tunnel
-# for a public HTTPS URL (phones, Twilio and SMSGate webhooks).
+# For a public HTTPS URL (phones, Twilio and SMSGate webhooks), run
+# ./scripts/public-url.sh: it starts the ngrok tunnel when NGROK_* is set in
+# .env, otherwise a Cloudflare quick tunnel.
 
 name: phonemail
 
@@ -189,13 +190,28 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Public HTTPS URL for phones and webhooks. The URL is printed in its logs:
-  #   docker compose logs cloudflared | grep trycloudflare.com
+  # Public HTTPS URL for phones and webhooks, no account needed. A new random
+  # URL on every start; scripts/public-url.sh finds it and points everything at it.
   cloudflared:
     image: cloudflare/cloudflared:latest
-    # http2 (TCP 443) instead of the default QUIC (UDP 7844), which many networks block.
+    # http2 over TCP rather than QUIC over UDP. Both use port 7844, which some
+    # networks block; use the ngrok tunnel below on those.
     command: ['tunnel', '--no-autoupdate', '--protocol', 'http2', '--url', 'http://web:8080']
     profiles: ['public']
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # The alternative tunnel: a free ngrok account gives one fixed address, and
+  # ngrok connects over port 443, which every network allows. Needs
+  # NGROK_AUTHTOKEN and NGROK_DOMAIN in .env; scripts/public-url.sh starts it.
+  ngrok:
+    image: ngrok/ngrok:3
+    command: ['http', 'web:8080', '--url', 'https://${NGROK_DOMAIN:-}', '--log', 'stdout']
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    profiles: ['ngrok']
     depends_on:
       web:
         condition: service_healthy

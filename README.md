@@ -171,14 +171,23 @@ console, and the console simulates calls and texts. For the real thing:
 ### 1. A public HTTPS address (for Twilio, SMSGate and your phone)
 
 ```bash
-docker compose --profile public up -d
 ./scripts/public-url.sh
 ```
 
-`public-url.sh` finds the `https://….trycloudflare.com` address, saves it as
-`PUBLIC_BASE_URL` in `.env`, restarts the services, and (when configured)
-points Twilio and SMSGate at it. The address changes every time the tunnel
-restarts; just run the script again. Open `<that address>/m` on your phone.
+The script starts a tunnel, saves its address as `PUBLIC_BASE_URL` in `.env`,
+restarts the services, and (when configured) points Twilio and SMSGate at it.
+Open `<that address>/m` on your phone. Two kinds of tunnel:
+
+- **Cloudflare quick tunnel** (the default, no account): a new
+  `https://….trycloudflare.com` address on every start, so run the script
+  again after each restart. It needs outgoing port 7844, which some networks
+  block.
+- **ngrok** (free account, recommended): one fixed address that never
+  changes, over port 443, so it works on almost any network. Sign up at
+  ngrok.com and put `NGROK_AUTHTOKEN` (dashboard → Your Authtoken) and
+  `NGROK_DOMAIN` (dashboard → Domains, like `name.ngrok-free.app`) in `.env`.
+  The first visit in a browser shows ngrok's "You are about to visit" page:
+  click **Visit Site** once.
 
 ### 2. Twilio (phone call sign-up, SMS alerts)
 
@@ -219,7 +228,8 @@ Using your personal phone is fine. Texts go out from your SIM (normal SMS
 charges and daily limits apply), and while the webhook is registered the
 phone forwards every text it receives. PhoneMail only acts on texts that start
 with JOIN (or HELP) from real phone numbers, and never stores the others.
-Remove the webhook after the demo:
+The demo accounts and the tests use made-up +91 9000 xxxxxx numbers, which
+PhoneMail never texts for real in demo mode. Remove the webhook after the demo:
 
 ```bash
 docker compose exec api node dist/scripts/smsgate-webhook.js unregister

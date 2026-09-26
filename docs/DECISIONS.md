@@ -234,3 +234,15 @@ why. The AI assistant adds to this list during the build; the README links here.
     gateway phone changes a setting, never the people texting it. Phones
     that pause background apps (OPPO, Xiaomi) must let SMSGate run in the
     background, or forwarding stops.
+79. Two tunnels for the public URL. The Cloudflare quick tunnel needs no
+    account but gets a new address on every start and needs outgoing port
+    7844, which some networks block. ngrok (free account) connects over
+    port 443 and keeps one fixed address, so Twilio, SMSGate and the link
+    shown to judges never change. scripts/public-url.sh uses ngrok when
+    NGROK_AUTHTOKEN and NGROK_DOMAIN are set; otherwise Cloudflare, so a
+    fresh clone still needs no sign-up.
+80. In demo mode, texts to +91 9000 xxxxxx never leave the demo console.
+    The seed users (9000000001-3) and every smoke and integration test use
+    that block. Before this rule, a test run with SMSGate configured sent a
+    real sign-in code to a random stranger's number, and Arjun's demo SMS
+    alert would have gone to whoever owns 9000000002.

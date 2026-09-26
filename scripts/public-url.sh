@@ -1,31 +1,65 @@
 #!/usr/bin/env bash
-# One command after starting the public tunnel:
-#   docker compose --profile public up -d
+# One command for a public HTTPS URL (phones, Twilio and SMSGate webhooks):
 #   ./scripts/public-url.sh
 #
-# 1. reads the https://….trycloudflare.com URL from the cloudflared logs
-# 2. writes it to .env as PUBLIC_BASE_URL and restarts api, smtp and worker
+# 1. starts a tunnel: ngrok when NGROK_AUTHTOKEN and NGROK_DOMAIN are set in
+#    .env (a fixed address, over port 443), otherwise a Cloudflare quick tunnel
+#    (no account, but a new random address on every start)
+# 2. writes the URL to .env as PUBLIC_BASE_URL and restarts api, smtp and worker
 # 3. points the Twilio number's call and SMS webhooks at it (if Twilio is set up)
 # 4. re-registers the SMSGate webhook (if SMSGate is set up)
-# The quick-tunnel URL changes on every restart, so run this each time.
+# Run it again after every restart of the stack or the tunnel.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+touch .env
 
-echo "Looking for the tunnel URL in the cloudflared logs..."
+# One value from .env, without quotes or Windows line endings (empty if unset).
+setting() {
+  grep -E "^$1=" .env | tail -1 | cut -d= -f2- | tr -d '\r' | sed -e 's/^"//' -e 's/"$//' || true
+}
+
+NGROK_AUTHTOKEN=$(setting NGROK_AUTHTOKEN)
+NGROK_DOMAIN=$(setting NGROK_DOMAIN)
 URL=""
-for _ in $(seq 1 30); do
-  URL=$(docker compose logs cloudflared 2>&1 | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1 || true)
-  [[ -n "$URL" ]] && break
-  sleep 2
-done
-if [[ -z "$URL" ]]; then
-  echo "No tunnel URL found. Start it with: docker compose --profile public up -d"
-  exit 1
+
+if [[ -n "$NGROK_AUTHTOKEN" && -n "$NGROK_DOMAIN" ]]; then
+  if [[ ! "$NGROK_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]]; then
+    echo "NGROK_DOMAIN in .env should look like name.ngrok-free.app (no https://, no slash)."
+    exit 1
+  fi
+  URL="https://$NGROK_DOMAIN"
+  echo "Starting the ngrok tunnel for $URL ..."
+  docker compose stop cloudflared >/dev/null 2>&1 || true
+  docker compose --profile ngrok up -d ngrok >/dev/null
+  status=""
+  for _ in $(seq 1 30); do
+    status=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "$URL/api/health" || true)
+    [[ "$status" == "200" ]] && break
+    sleep 2
+  done
+  if [[ "$status" != "200" ]]; then
+    echo "The ngrok address doesn't answer yet (HTTP $status). ngrok's last messages:"
+    docker compose logs --tail 15 ngrok
+    exit 1
+  fi
+else
+  echo "Starting the Cloudflare quick tunnel (set NGROK_* in .env for a fixed address)..."
+  docker compose --profile public up -d cloudflared >/dev/null
+  echo "Looking for the tunnel URL in the cloudflared logs..."
+  for _ in $(seq 1 30); do
+    URL=$(docker compose logs cloudflared 2>&1 | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1 || true)
+    [[ -n "$URL" ]] && break
+    sleep 2
+  done
+  if [[ -z "$URL" ]]; then
+    echo "No tunnel URL found. Last messages from cloudflared:"
+    docker compose logs --tail 15 cloudflared
+    exit 1
+  fi
 fi
 echo "Public URL: $URL"
 
 # Update (or add) PUBLIC_BASE_URL in .env without touching anything else.
-touch .env
 if grep -q '^PUBLIC_BASE_URL=' .env; then
   sed -i.bak "s|^PUBLIC_BASE_URL=.*|PUBLIC_BASE_URL=$URL|" .env && rm -f .env.bak
 else

@@ -22,7 +22,7 @@ Build order: 0 → 1 → 2 → 3 → 6 → 4 → 5a → 5b → 7 → 8 → 9 (se
 - Verified on the real stack (25 Sep): 8 containers healthy, 14 smoke checks, 19 integration
   tests, and the demo story by hand (see docs/CHECKLIST.md). Four bugs found and fixed.
 - Real phones (25 Sep): Twilio "Call me" and SMS, SMSGate codes, alerts and JOIN sign-up all work.
-  SMSGate needs RCS chats off on the gateway phone (DECISIONS 78). Still to try: WebOTP auto-fill on Android.
+  SMSGate needs RCS chats off on the gateway phone (DECISIONS 78). WebOTP auto-fill verified on a second phone (26 Sep).
 - 26 Sep: fixed public address through ngrok (DECISIONS 79), verified with a real "Call me" and a real HELP
   text on home Wi-Fi, no hotspot. Demo numbers never get real SMS (DECISIONS 80). Demo-day plan: docs/DEMO-DAY.md.
 - README screenshots: slots are ready in a comment at the top.

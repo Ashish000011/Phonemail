@@ -31,7 +31,9 @@ Legend:
   Live: sign-in at /login lands in /mail, the code field takes focus.
 - [x] Mobile: language → terms → number → OTP → chats, with the "find your
   number" sheet at the number step. Live at 375 px. WebOTP auto-fill:
-  **pending device** (Android Chrome + real SMS).
+  Real device (26 Sep): the code filled itself in on a second Android phone.
+  Android skips codes from a saved contact, so it does not fill in when the
+  sender is in your contacts (type it or tap the keyboard suggestion).
 - [x] Password fallback with `AUTH_MODE=password`. Live (API): a new number
   signs up with a password; a wrong one is refused; codes are off; a phone-call
   sign-up hears a temporary PIN, which signs in but blocks everything

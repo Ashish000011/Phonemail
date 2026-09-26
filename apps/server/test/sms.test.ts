@@ -163,7 +163,12 @@ describe('provider adapters', () => {
 describe('OTP SMS text', () => {
   it('ends with the WebOTP line for the public host', () => {
     const text = buildOtpSms('482913', 'https://abc.trycloudflare.com');
-    expect(text.startsWith('482913 is your PhoneMail code.')).toBe(true);
+    expect(text.startsWith('PhoneMail sign-in: 482913')).toBe(true);
     expect(text.split('\n').at(-1)).toBe('@abc.trycloudflare.com #482913');
+  });
+
+  it('avoids the bank-style wording that Indian networks block', () => {
+    const text = buildOtpSms('482913', 'https://abc.trycloudflare.com');
+    expect(text).not.toMatch(/is your .*code|expires in|share/i);
   });
 });

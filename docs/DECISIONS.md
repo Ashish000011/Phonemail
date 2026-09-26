@@ -246,3 +246,9 @@ why. The AI assistant adds to this list during the build; the README links here.
     that block. Before this rule, a test run with SMSGate configured sent a
     real sign-in code to a random stranger's number, and Arjun's demo SMS
     alert would have gone to whoever owns 9000000002.
+81. The code SMS reads "PhoneMail sign-in: 123456" plus the WebOTP line.
+    Airtel rejected every text in the old wording ("123456 is your PhoneMail
+    code. It expires in 5 minutes. Don't share it.") when sent from a
+    personal SIM through SMSGate, while other texts went through. A test
+    of three variants showed the bank-style wording is what gets blocked;
+    the code itself and the "@host #code" line are fine.

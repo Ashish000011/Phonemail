@@ -28,12 +28,14 @@ just continue); the portal reports it.
   if needed).
 - Text for our own codes:
   ```
-  <code> is your PhoneMail code. It expires in 5 minutes. Don't share it.
+  PhoneMail sign-in: <code>
 
   @<host of PUBLIC_BASE_URL> #<code>
   ```
   The last line lets Chrome on Android read the code automatically (WebOTP).
-  Keep it as the last line in exactly this shape.
+  Keep it as the last line in exactly this shape. The first line stays plain:
+  Indian networks reject bank-style OTP wording from a personal SIM
+  (DECISIONS 81).
 
 ## Which OTP path is used (OTP_PROVIDER=auto, the default)
 1. An SMS provider that can send custom text is configured (SMSGate, or Twilio

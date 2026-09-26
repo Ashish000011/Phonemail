@@ -40,7 +40,7 @@ export interface SendSmsResult {
  */
 export const DEMO_NUMBER_PREFIX = '+919000';
 
-// "123456 is your PhoneMail code…" → "•••••• is your PhoneMail code…"
+// "PhoneMail sign-in: 123456" → "PhoneMail sign-in: ••••••"
 function maskCodes(body: string): string {
   return body.replace(/\b\d{6}\b/g, '••••••');
 }

@@ -93,7 +93,8 @@ export async function sendSignupSms(job: SignupSmsJob): Promise<void> {
 function welcomeSms(localPart: string, pin?: string): string {
   const address = formatAddress(localPart, env.MAIL_DOMAIN);
   const link = `${env.PUBLIC_BASE_URL.replace(/\/$/, '')}/m?phone=${localPart}`;
-  const pinPart = pin ? ` Your temporary PIN is ${pin}.` : '';
+  // Plain wording: networks block bank-style "your PIN is" texts (see providers/otp/text.ts).
+  const pinPart = pin ? ` Temporary PIN: ${pin}.` : '';
   return `Welcome to PhoneMail! Your email address is ${address}.${pinPart} Sign in at ${link}`;
 }
 

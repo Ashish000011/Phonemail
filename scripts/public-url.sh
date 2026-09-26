@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One command for a public HTTPS URL (phones, Twilio and SMSGate webhooks):
-#   ./scripts/public-url.sh
+#   ./scripts/public-url.sh              ngrok if set up, else Cloudflare
+#   ./scripts/public-url.sh cloudflare   force the Cloudflare quick tunnel
 #
 # 1. starts a tunnel: ngrok when NGROK_AUTHTOKEN and NGROK_DOMAIN are set in
 #    .env (a fixed address, over port 443), otherwise a Cloudflare quick tunnel
@@ -21,6 +22,11 @@ setting() {
 NGROK_AUTHTOKEN=$(setting NGROK_AUTHTOKEN)
 NGROK_DOMAIN=$(setting NGROK_DOMAIN)
 URL=""
+
+if [[ "${1:-}" == "cloudflare" ]]; then
+  NGROK_AUTHTOKEN=""
+  docker compose stop ngrok >/dev/null 2>&1 || true
+fi
 
 if [[ -n "$NGROK_AUTHTOKEN" && -n "$NGROK_DOMAIN" ]]; then
   if [[ ! "$NGROK_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]]; then

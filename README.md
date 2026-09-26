@@ -61,6 +61,9 @@ Stop with `docker compose down` (add `-v` to delete the data too).
 
 ## Try the demo story
 
+With the simulators, no phone needed (for real calls and texts, see
+[docs/DEMO-DAY.md](docs/DEMO-DAY.md)):
+
 1. **Sign up by phone call:** in the demo console, "Simulate call" and press
    1. The account is created and the confirmation SMS shows in the feed.
    (Or call the real Twilio number, see below.)

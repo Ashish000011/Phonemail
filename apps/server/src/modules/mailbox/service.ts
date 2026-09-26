@@ -51,7 +51,7 @@ export async function listFolder(
 ): Promise<MailboxPage> {
   const entries = await db.mailboxEntry.findMany({
     where: folderWhere(userId, folder),
-    orderBy: { message: { sentAt: 'desc' } },
+    orderBy: [{ message: { sentAt: 'desc' } }, { message: { createdAt: 'desc' } }],
     take: MAX_LIST_ENTRIES,
     include: {
       message: {
@@ -136,7 +136,9 @@ export async function folderCounts(userId: string) {
 export async function getThread(userId: string, threadId: string): Promise<Thread> {
   const entries = await db.mailboxEntry.findMany({
     where: { userId, message: { threadId } },
-    orderBy: { message: { sentAt: 'asc' } },
+    // Date headers only have whole seconds, so a quick reply can tie with its
+    // original; the time we stored it breaks the tie.
+    orderBy: [{ message: { sentAt: 'asc' } }, { message: { createdAt: 'asc' } }],
     include: {
       message: {
         include: {

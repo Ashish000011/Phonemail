@@ -14,14 +14,18 @@ Built by Ashish Bharti for the AlphaStack 7-Day Buildathon, NIT Trichy.
        alt="Onboarding on a real phone: Welcome to PhoneMail, Agree and continue">
   <img src="docs/screenshots/mobile-chat.png" width="240"
        alt="A WhatsApp-style chat: bubbles, quoted replies, ticks and date chips">
-  <img src="docs/screenshots/settings-tamil.jpg" width="240"
-       alt="Settings in Tamil">
 </p>
+<p align="center">
+  <img src="docs/screenshots/settings-english.jpg" width="240" alt="Settings in English">
+  <img src="docs/screenshots/settings-hindi.jpg" width="240" alt="Settings in Hindi">
+  <img src="docs/screenshots/settings-tamil.jpg" width="240" alt="Settings in Tamil">
+</p>
+<p align="center"><sub>Settings in English, हिन्दी and தமிழ்</sub></p>
 <p align="center">
   <img src="docs/screenshots/web-inbox.png" width="760" alt="The Gmail-style web inbox">
 </p>
-<p align="center"><sub>Onboarding and Tamil settings on a real Android phone (the APK), a
-chat between the demo users, and the web inbox on a laptop.</sub></p>
+<p align="center"><sub>Onboarding and settings on a real Android phone (the APK), a chat
+between the demo users, and the web inbox on a laptop.</sub></p>
 
 ## Quick start
 

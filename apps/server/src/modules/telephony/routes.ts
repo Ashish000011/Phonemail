@@ -148,8 +148,9 @@ export async function telephonyRoutes(fastify: FastifyInstance) {
       const sender = String(payload.sender ?? payload.phoneNumber ?? '');
       const message = String(payload.message ?? '');
       const result = await handleInboundSms('smsgate', sender, message, requestMeta(request));
-      // Log the outcome only: the text of an ignored (personal) message is never kept.
-      request.log.info({ outcome: result.outcome }, 'smsgate inbound');
+      // Log the outcome and why a text was ignored, never the text of a personal message.
+      const reason = result.outcome === 'ignored' ? result.reason : undefined;
+      request.log.info({ outcome: result.outcome, reason }, 'smsgate inbound');
     }
     return reply.send({ ok: true });
   });

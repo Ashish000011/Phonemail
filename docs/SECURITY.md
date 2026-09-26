@@ -107,7 +107,8 @@ maps to the checklist in `docs/spec/09-quality.md`.
 
 ## Known limits (honest list)
 - `npm audit` reports one "high" advisory in `deepmerge-ts` inside the Prisma
-  CLI's config loader. It is reachable only when Prisma reads our own config
+  CLI's config loader (npm lists it three times: prisma → @prisma/config →
+  deepmerge-ts). It is reachable only when Prisma reads our own config
   file, never with user input, so CI fails only on critical advisories.
   Upgrading Prisma to a fixed release removes it.
 - The SMTP port has no TLS. Inside Docker the API talks to it over the private

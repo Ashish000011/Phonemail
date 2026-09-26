@@ -185,7 +185,7 @@ Open `<that address>/m` on your phone. Two kinds of tunnel:
 - **ngrok** (free account, recommended): one fixed address that never
   changes, over port 443, so it works on almost any network. Sign up at
   ngrok.com and put `NGROK_AUTHTOKEN` (dashboard → Your Authtoken) and
-  `NGROK_DOMAIN` (dashboard → Domains, like `name.ngrok-free.app`) in `.env`.
+  `NGROK_DOMAIN` (dashboard → Domains, like `name.ngrok-free.dev`) in `.env`.
   The first visit in a browser shows ngrok's "You are about to visit" page:
   click **Visit Site** once.
 

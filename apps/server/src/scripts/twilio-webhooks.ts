@@ -40,7 +40,13 @@ try {
     `${api}/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(number)}`,
   );
   const numbers = (found.incoming_phone_numbers ?? []) as { sid: string }[];
-  if (!numbers[0]) throw new Error(`${number} is not a number in this Twilio account.`);
+  if (!numbers[0]) {
+    // Twilio's free trial lends a shared number that can't be configured (DECISIONS 77).
+    console.log(
+      `Twilio ${number} is a shared trial number, so incoming calls and texts can't be set up. "Call me" in the demo console still works.`,
+    );
+    process.exit(0);
+  }
   await twilio('POST', `${api}/IncomingPhoneNumbers/${numbers[0].sid}.json`, {
     VoiceUrl: `${base}/webhooks/twilio/voice`,
     VoiceMethod: 'POST',

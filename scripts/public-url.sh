@@ -24,13 +24,13 @@ URL=""
 
 if [[ -n "$NGROK_AUTHTOKEN" && -n "$NGROK_DOMAIN" ]]; then
   if [[ ! "$NGROK_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]]; then
-    echo "NGROK_DOMAIN in .env should look like name.ngrok-free.app (no https://, no slash)."
+    echo "NGROK_DOMAIN in .env should look like name.ngrok-free.dev (no https://, no slash)."
     exit 1
   fi
   URL="https://$NGROK_DOMAIN"
   echo "Starting the ngrok tunnel for $URL ..."
   docker compose stop cloudflared >/dev/null 2>&1 || true
-  docker compose --profile ngrok up -d ngrok >/dev/null
+  docker compose --progress quiet --profile ngrok up -d ngrok
   status=""
   for _ in $(seq 1 30); do
     status=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "$URL/api/health" || true)
@@ -44,7 +44,7 @@ if [[ -n "$NGROK_AUTHTOKEN" && -n "$NGROK_DOMAIN" ]]; then
   fi
 else
   echo "Starting the Cloudflare quick tunnel (set NGROK_* in .env for a fixed address)..."
-  docker compose --profile public up -d cloudflared >/dev/null
+  docker compose --progress quiet --profile public up -d cloudflared
   echo "Looking for the tunnel URL in the cloudflared logs..."
   for _ in $(seq 1 30); do
     URL=$(docker compose logs cloudflared 2>&1 | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1 || true)
@@ -67,7 +67,7 @@ else
 fi
 
 echo "Restarting api, smtp and worker with the new URL..."
-docker compose up -d --no-deps api smtp worker >/dev/null
+docker compose --progress quiet up -d --no-deps api smtp worker
 for _ in $(seq 1 30); do
   docker compose exec -T api node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" 2>/dev/null && break
   sleep 2

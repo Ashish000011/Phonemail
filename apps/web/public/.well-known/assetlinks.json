@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.phonemail.twa",
+        "sha256_cert_fingerprints": ["64:7B:7A:E8:51:97:F9:D4:DE:00:63:44:AD:A4:EC:1A:84:CC:CE:EC:06:FC:13:86:8B:10:04:1A:D0:7D:06:79"]
+      }
+    }]

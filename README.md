@@ -110,7 +110,9 @@ With the simulators, no phone needed (for real calls and texts, see
 
 Also: Hindi and Tamil everywhere, live updates and blue ticks, drafts that
 save themselves, stars, spam and blocked senders, attachments, aliases,
-keyboard shortcuts on the web (press `?`), an installable PWA.
+keyboard shortcuts on the web (press `?`), an installable PWA, and an
+Android APK of the mobile app (a Trusted Web Activity; see
+[docs/APK.md](docs/APK.md)).
 
 ## How it works
 

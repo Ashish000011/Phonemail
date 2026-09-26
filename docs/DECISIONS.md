@@ -257,3 +257,8 @@ why. The AI assistant adds to this list during the build; the README links here.
     useful parts: a code-expiry countdown, a Verify button for typed codes,
     a "Didn't receive the code?" card with resend and change number, and a
     hint when the number was filled in from the welcome SMS link.
+83. The APK is a Trusted Web Activity built with PWABuilder, not a native
+    app: the organizers call an APK optional but welcome if free, and a TWA
+    reuses the mobile web app as is (WebOTP included). Its signing key stays
+    outside the repo; only the public assetlinks.json is served
+    (docs/APK.md).

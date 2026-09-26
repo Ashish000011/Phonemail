@@ -9,10 +9,13 @@ import '@fontsource/noto-sans-tamil/500.css';
 import './shared/i18n';
 import './index.css';
 import { router } from './app/router';
+import { keepAppUpToDate } from './shared/pwa';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false } },
 });
+
+keepAppUpToDate();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

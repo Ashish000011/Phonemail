@@ -281,3 +281,9 @@ why. The AI assistant adds to this list during the build; the README links here.
     Listing every email (your own replies included) looked like a broken
     chat. Trash stays an email list, where restoring one email makes sense.
     The web client keeps Gmail's per-thread Spam folder.
+87. The installed app updates itself: src/shared/pwa.ts registers the
+    service worker, checks for a new version whenever the app comes back to
+    the screen, and reloads into it once it is ready (drafts save
+    themselves). If a new version went live while a page was open and its
+    old code files are gone, it reloads once. Found on the real phone, which
+    kept showing the old Spam screen after a deploy.

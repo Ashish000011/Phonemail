@@ -19,7 +19,8 @@ export default defineConfig({
     // mail always comes fresh from the server.
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'script-defer',
+      // Registered in src/shared/pwa.ts, which also reloads into new versions.
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'PhoneMail',
@@ -46,8 +47,14 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
-        // Never answer these from the cache: they're live data and server endpoints.
-        navigateFallbackDenylist: [/^\/api\//, /^\/socket\.io\//, /^\/webhooks\//],
+        // Never answer these from the cache: live data, server endpoints, and the
+        // Android app's site check (assetlinks.json must be the real file).
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/socket\.io\//,
+          /^\/webhooks\//,
+          /^\/\.well-known\//,
+        ],
         runtimeCaching: [],
       },
     }),

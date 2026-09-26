@@ -2,14 +2,25 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'motion/react';
-import { authResultSchema, otpRequestResponseSchema, type Me } from '@phonemail/shared';
+import {
+  authResultSchema,
+  OTP_TTL_SECONDS,
+  otpRequestResponseSchema,
+  type Me,
+} from '@phonemail/shared';
 import { api } from '../../shared/api';
 import { DemoCodeBanner } from '../../shared/DemoCodeBanner';
 import { useErrorText } from '../../shared/errors';
 import { formatPhone } from '../../shared/phone';
 import { useConfig } from '../../shared/useConfig';
 import { useCountdown } from '../../shared/useCountdown';
+import { PrimaryButton } from '../ui/bits';
 import { useOnboarding } from './store';
+
+/** "4:05" */
+function clock(totalSeconds: number): string {
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
+}
 
 /** WebOTP: Chrome on Android reads the code from the SMS (its last line is "@host #123456"). */
 interface OtpCredential extends Credential {
@@ -28,18 +39,22 @@ export function VerifyStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
   const reduceMotion = useReducedMotion();
   const { phoneE164, demoCode, codeSentAt, resendAfterSeconds, go, codeSent } = useOnboarding();
   const countdown = useCountdown();
+  const expiry = useCountdown();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
   const [focused, setFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Resend is allowed 30 s after the last code, even across a page refresh.
+  // Resend is allowed 30 s after the last code, and the code works for 5
+  // minutes; both count from when it was sent, even across a page refresh.
   const startCountdown = countdown.start;
+  const startExpiry = expiry.start;
   useEffect(() => {
-    const elapsed = codeSentAt ? (Date.now() - codeSentAt) / 1000 : resendAfterSeconds;
+    const elapsed = codeSentAt ? (Date.now() - codeSentAt) / 1000 : OTP_TTL_SECONDS;
     startCountdown(Math.ceil(resendAfterSeconds - elapsed));
-  }, [codeSentAt, resendAfterSeconds, startCountdown]);
+    startExpiry(Math.ceil(OTP_TTL_SECONDS - elapsed));
+  }, [codeSentAt, resendAfterSeconds, startCountdown, startExpiry]);
 
   // Listen for the SMS while this screen is open; stop listening when it closes.
   useEffect(() => {
@@ -99,8 +114,7 @@ export function VerifyStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
   }, [code]);
 
   const display = phoneE164 ? formatPhone(phoneE164) : '';
-  const minutes = Math.floor(countdown.secondsLeft / 60);
-  const seconds = String(countdown.secondsLeft % 60).padStart(2, '0');
+  const expired = Boolean(codeSentAt) && expiry.secondsLeft === 0;
 
   if (verified) {
     return (
@@ -185,19 +199,41 @@ export function VerifyStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
       <p className="mt-3 text-center text-[0.875rem] text-text-muted">
         {t('onboarding.enterCode')}
       </p>
+      {/* Updated every second, so it's not announced; the expired message is. */}
+      {codeSentAt && !expired && (
+        <p className="mt-1 text-center text-[0.8125rem] text-text-muted">
+          {t('onboarding.expiresIn', { time: clock(expiry.secondsLeft) })}
+        </p>
+      )}
       <p
         id="onboarding-code-error"
         role="alert"
         className="mt-2 min-h-5 text-center text-[0.875rem] text-danger"
       >
-        {verify.isPending ? t('onboarding.pleaseWait') : error}
+        {verify.isPending ? t('onboarding.pleaseWait') : expired ? t('onboarding.expired') : error}
       </p>
 
-      <div className="mt-auto flex flex-col items-center gap-1 pt-8 text-[0.9375rem]">
-        <p className="text-text-muted">{t('onboarding.didntReceive')}</p>
+      {/* For codes typed by hand; a detected or pasted code submits by itself. */}
+      <div className="mx-auto mt-4 mb-8 w-full max-w-[320px]">
+        <PrimaryButton
+          type="button"
+          disabled={code.length < 6 || verify.isPending || expired}
+          onClick={() => verify.mutate(code)}
+        >
+          {verify.isPending ? t('onboarding.pleaseWait') : t('onboarding.verify')}
+        </PrimaryButton>
+      </div>
+
+      <section
+        aria-labelledby="onboarding-resend-title"
+        className="mx-auto mt-auto flex w-full max-w-[320px] flex-col items-center gap-1 rounded-2xl border border-text-muted/25 bg-app-bg px-4 py-4 text-[0.9375rem]"
+      >
+        <h2 id="onboarding-resend-title" className="font-medium">
+          {t('onboarding.didntReceive')}
+        </h2>
         {countdown.secondsLeft > 0 ? (
           <p className="text-text-muted" aria-live="polite">
-            {t('onboarding.resendIn', { time: `${minutes}:${seconds}` })}
+            {t('onboarding.resendIn', { time: clock(countdown.secondsLeft) })}
           </p>
         ) : (
           <button
@@ -209,7 +245,14 @@ export function VerifyStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
             {t('onboarding.resendSms')}
           </button>
         )}
-      </div>
+        <button
+          type="button"
+          onClick={() => go('phone')}
+          className="min-h-11 text-[0.875rem] text-link"
+        >
+          {t('onboarding.changeNumber')}
+        </button>
+      </section>
     </main>
   );
 }

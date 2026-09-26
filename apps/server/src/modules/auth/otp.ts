@@ -1,13 +1,14 @@
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { OTP_TTL_SECONDS } from '@phonemail/shared';
 import { AppError } from '../../lib/errors.js';
 import type { KeyValueStore } from '../../lib/kv.js';
 
 /**
  * One-time codes (docs/spec/03-auth-and-accounts.md). Codes live in Redis for
  * 5 minutes, only as an HMAC hash, and every limit below is enforced here on
- * the server.
+ * the server. The lifetime is shared so the apps can show the same countdown.
  */
-export const OTP_TTL_SECONDS = 5 * 60;
+export { OTP_TTL_SECONDS };
 export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_RESEND_COOLDOWN_SECONDS = 30;
 export const OTP_MAX_PER_NUMBER_PER_HOUR = 5;

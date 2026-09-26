@@ -252,3 +252,8 @@ why. The AI assistant adds to this list during the build; the README links here.
     personal SIM through SMSGate, while other texts went through. A test
     of three variants showed the bank-style wording is what gets blocked;
     the code itself and the "@host #code" line are fine.
+82. The organizers shared a reference design (Figma: blue theme, cards).
+    We keep the WhatsApp look the written rules ask for, and borrowed its
+    useful parts: a code-expiry countdown, a Verify button for typed codes,
+    a "Didn't receive the code?" card with resend and change number, and a
+    hint when the number was filled in from the welcome SMS link.

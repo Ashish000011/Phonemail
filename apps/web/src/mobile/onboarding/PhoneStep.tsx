@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, Sparkles } from 'lucide-react';
 import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
 import { authResultSchema, otpRequestResponseSchema, type Me } from '@phonemail/shared';
 import { api } from '../../shared/api';
@@ -155,6 +155,13 @@ export function PhoneStep({ onSignedIn }: { onSignedIn: (user: Me) => void }) {
               className={`${underline} min-w-0 flex-1 tracking-wide`}
             />
           </div>
+
+          {prefill && number === prefill.number && (
+            <p className="flex items-center justify-center gap-1.5 text-center text-[0.8125rem] text-text-muted">
+              <Sparkles size={14} className="shrink-0 text-brand" aria-hidden="true" />
+              {t('onboarding.autoDetected')}
+            </p>
+          )}
 
           {passwordMode && (
             <>

@@ -21,6 +21,9 @@ export const newPasswordSchema = z.string().min(MIN_PASSWORD_LENGTH).max(200);
 
 export const otpRequestBodySchema = z.object({ phone: phoneInputSchema });
 
+/** How long a sign-in code works. The server enforces it; the apps show a countdown. */
+export const OTP_TTL_SECONDS = 5 * 60;
+
 export const otpRequestResponseSchema = z.object({
   phoneE164: z.string(),
   resendAfterSeconds: z.number(),

@@ -15,15 +15,17 @@ With [PWABuilder](https://www.pwabuilder.com) (Microsoft's free packager),
 |---|---|
 | Package ID | `app.phonemail.twa` |
 | App name / short name | PhoneMail |
-| Host | `blinker-query-chest.ngrok-free.dev` (the fixed ngrok address) |
+| Host | `phonemail.bilberry-carat.ts.net` (the Tailscale Funnel address) |
 | Start URL | `/m` |
+| Version / version code | 1.1.0.0 / 2 |
 | Signing key | New |
 | Everything else | Defaults (colours and icons come from our manifest) |
 
-ngrok's free plan shows browsers a "You are about to visit" page, which is
-also what PWABuilder's checker saw. So PWABuilder read the manifest and icons
-through a temporary Cloudflare quick tunnel (phone hotspot), while **Host**
-was set to the ngrok address that the app opens.
+The first build (1.0) pointed at the ngrok address. ngrok's free plan shows
+browsers a "You are about to visit" page, and Chrome on the phone got that
+page instead of `assetlinks.json`, so the app showed an address bar. With
+Tailscale Funnel nothing sits in front of the site: PWABuilder reads it
+directly and the site check passes (DECISIONS 84).
 
 ## The files
 
@@ -45,9 +47,9 @@ PWABuilder's zip holds:
 2. Open it and allow "Install unknown apps" for the app you opened it from.
 3. Play Protect may warn about an unknown developer (it's not from the Play
    Store): choose **Install anyway**.
-4. Open PhoneMail. The first launch may show ngrok's notice once: tap
-   **Visit Site**. If you're already signed in to the site in Chrome, the app
-   is signed in too (they share Chrome's storage).
+4. Open PhoneMail. If you're already signed in to the site in Chrome, the
+   app is signed in too (they share Chrome's storage). An app built with a
+   different key must be uninstalled first.
 
 ## Limits
 

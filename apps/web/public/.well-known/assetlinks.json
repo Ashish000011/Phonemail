@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.phonemail.twa",
-        "sha256_cert_fingerprints": ["64:7B:7A:E8:51:97:F9:D4:DE:00:63:44:AD:A4:EC:1A:84:CC:CE:EC:06:FC:13:86:8B:10:04:1A:D0:7D:06:79"]
+        "sha256_cert_fingerprints": ["1D:35:6E:D8:32:EE:AB:61:BA:8D:65:2E:EA:F7:EB:A7:AA:F1:3E:5F:DE:89:EC:45:84:B9:B3:CA:B6:6D:83:B8"]
       }
     }]

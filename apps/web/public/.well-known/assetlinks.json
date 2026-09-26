@@ -1,8 +1,12 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.phonemail.twa",
-        "sha256_cert_fingerprints": ["1D:35:6E:D8:32:EE:AB:61:BA:8D:65:2E:EA:F7:EB:A7:AA:F1:3E:5F:DE:89:EC:45:84:B9:B3:CA:B6:6D:83:B8"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.phonemail.twa",
+      "sha256_cert_fingerprints": [
+        "1D:35:6E:D8:32:EE:AB:61:BA:8D:65:2E:EA:F7:EB:A7:AA:F1:3E:5F:DE:89:EC:45:84:B9:B3:CA:B6:6D:83:B8"
+      ]
+    }
+  }
+]

@@ -98,7 +98,9 @@ export function SpamScreen() {
                     {chat.kind === 'self' ? t('chat.you') : chat.title}
                   </span>
                   <span className="ml-auto shrink-0 text-[0.75rem] text-text-muted">
-                    {chat.lastMessage ? chatListTime(chat.lastMessage.sentAt, i18n.language, t) : ''}
+                    {chat.lastMessage
+                      ? chatListTime(chat.lastMessage.sentAt, i18n.language, t)
+                      : ''}
                   </span>
                 </span>
                 <span className="flex min-w-0 items-center gap-1 text-[0.875rem] text-text-muted">

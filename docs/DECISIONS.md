@@ -262,3 +262,11 @@ why. The AI assistant adds to this list during the build; the README links here.
     reuses the mobile web app as is (WebOTP included). Its signing key stays
     outside the repo; only the public assetlinks.json is served
     (docs/APK.md).
+84. The public address moved to Tailscale Funnel
+    (https://phonemail.bilberry-carat.ts.net): free, fixed, over port 443,
+    and with nothing in front of the app. ngrok's free plan shows browsers a
+    warning page ("only visit if you trust… be careful with phone numbers"),
+    a bad first impression for judges, and it also blocked Chrome's check of
+    assetlinks.json, so the APK showed an address bar. ngrok stays as a
+    fallback (`./scripts/public-url.sh ngrok`). reset-demo.sh removes only
+    the data volumes, so the Tailscale login (and the address) survive.

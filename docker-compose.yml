@@ -217,7 +217,46 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # The recommended tunnel: Tailscale Funnel (free account) gives a fixed
+  # https://phonemail.<tailnet>.ts.net address over port 443, with no warning
+  # page in front of the app (which the Android app's site check needs).
+  # Needs TS_AUTHKEY in .env; scripts/public-url.sh starts it.
+  tailscale:
+    image: tailscale/tailscale:stable
+    hostname: phonemail
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_AUTH_ONCE: 'true'
+      TS_HOSTNAME: phonemail
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: 'true'
+      TS_SERVE_CONFIG: /config/serve.json
+    configs:
+      - source: tailscale-serve
+        target: /config/serve.json
+    volumes:
+      - tailscale:/var/lib/tailscale
+    profiles: ['tailscale']
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Funnel: serve https://<this machine>.ts.net on 443 publicly, proxied to nginx.
+# $${TS_CERT_DOMAIN} is filled in by the tailscale container, not by Compose.
+configs:
+  tailscale-serve:
+    content: |
+      {
+        "TCP": { "443": { "HTTPS": true } },
+        "Web": {
+          "$${TS_CERT_DOMAIN}:443": { "Handlers": { "/": { "Proxy": "http://web:8080" } } }
+        },
+        "AllowFunnel": { "$${TS_CERT_DOMAIN}:443": true }
+      }
+
 volumes:
   pgdata:
   redisdata:
   maildata:
+  tailscale:

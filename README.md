@@ -181,18 +181,21 @@ console, and the console simulates calls and texts. For the real thing:
 
 The script starts a tunnel, saves its address as `PUBLIC_BASE_URL` in `.env`,
 restarts the services, and (when configured) points Twilio and SMSGate at it.
-Open `<that address>/m` on your phone. Two kinds of tunnel:
+Open `<that address>/m` on your phone. The script picks the first tunnel
+that is set up in `.env` (or name one: `./scripts/public-url.sh ngrok`):
 
-- **Cloudflare quick tunnel** (the default, no account): a new
-  `https://….trycloudflare.com` address on every start, so run the script
-  again after each restart. It needs outgoing port 7844, which some networks
-  block.
-- **ngrok** (free account, recommended): one fixed address that never
-  changes, over port 443, so it works on almost any network. Sign up at
-  ngrok.com and put `NGROK_AUTHTOKEN` (dashboard → Your Authtoken) and
-  `NGROK_DOMAIN` (dashboard → Domains, like `name.ngrok-free.dev`) in `.env`.
-  The first visit in a browser shows ngrok's "You are about to visit" page:
-  click **Visit Site** once.
+- **Tailscale Funnel** (free account, recommended): a fixed
+  `https://phonemail.<tailnet>.ts.net` address over port 443, with nothing in
+  front of the app. Sign up at tailscale.com; on the DNS page enable MagicDNS
+  and HTTPS certificates; under Settings → Keys generate an auth key
+  (Reusable on, Ephemeral off) and put it in `.env` as `TS_AUTHKEY`.
+- **ngrok** (free account): also a fixed address over port 443, but browsers
+  first see ngrok's "You are about to visit" page (click **Visit Site** once).
+  Put `NGROK_AUTHTOKEN` and `NGROK_DOMAIN` (like `name.ngrok-free.dev`) in
+  `.env`.
+- **Cloudflare quick tunnel** (no account): a new `https://….trycloudflare.com`
+  address on every start, so run the script again after each restart. It
+  needs outgoing port 7844, which some networks block.
 
 ### 2. Twilio (phone call sign-up, SMS alerts)
 

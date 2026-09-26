@@ -5,16 +5,16 @@ real call and real texts, plus what to do when something fails.
 
 ## 15 minutes before
 
-1. Laptop: Docker Desktop running, any Wi-Fi (ngrok works over port 443).
+1. Laptop: Docker Desktop running, any Wi-Fi (Tailscale Funnel works over
+   port 443), lid open and plugged in: the laptop is the server.
 2. Fresh data: `./scripts/reset-demo.sh`, type `RESET`. It ends by printing
-   the public address (https://…ngrok-free.dev). Your number now has no
+   the public address, https://phonemail.bilberry-carat.ts.net. Your number now has no
    account, so the sign-up can be shown live.
 3. Phone (the SMSGate phone):
    - SMS Gateway app open, **START SERVICE**, phone plugged in.
    - Google Messages → RCS chats **off** (texts to you must arrive as SMS).
-   - Open the public address once and tap **Visit Site**, so ngrok's notice
-     doesn't appear during the demo.
-4. Laptop tabs, each opened once through **Visit Site**:
+   - The PhoneMail app (APK) installed, or the address open in Chrome.
+4. Laptop tabs:
    - `/demo`: the demo console (codes for the demo users appear here).
    - `/mail`: signed in as Arjun, `9000000002` (his code shows in the demo
      console).
@@ -58,7 +58,7 @@ real call and real texts, plus what to do when something fails.
 
 | Problem | Fix |
 |---|---|
-| Public address doesn't load | Phone hotspot, then `./scripts/public-url.sh cloudflare` (new address, printed at the end) |
+| Public address doesn't load | `./scripts/public-url.sh` again. Still down: `./scripts/public-url.sh ngrok` (the old address; the APK won't follow) or the phone hotspot and `./scripts/public-url.sh cloudflare` |
 | No call | Is the number verified in Twilio? Otherwise demo console → **Simulate call** |
 | A text never arrives | SMS Gateway app still running? Sender's message sent as a chat (RCS)? Demo console feed shows every attempt. **Simulate SMS** runs the same code |
 | Code doesn't fill itself in | Type it; it's in the SMS |

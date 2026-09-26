@@ -9,13 +9,19 @@ the mobile app, an SMS tells you when an email arrives.
 
 Built by Ashish Bharti for the AlphaStack 7-Day Buildathon, NIT Trichy.
 
-<!--
-  Screenshots (Ashish: save these three files, then remove this comment's
-  opening and closing lines):
-  ![Chats on the phone](docs/screenshots/mobile-chat.png)
-  ![Onboarding](docs/screenshots/onboarding.png)
-  ![Web inbox](docs/screenshots/web-inbox.png)
--->
+<p align="center">
+  <img src="docs/screenshots/onboarding.jpg" width="240"
+       alt="Onboarding on a real phone: Welcome to PhoneMail, Agree and continue">
+  <img src="docs/screenshots/mobile-chat.png" width="240"
+       alt="A WhatsApp-style chat: bubbles, quoted replies, ticks and date chips">
+  <img src="docs/screenshots/settings-tamil.jpg" width="240"
+       alt="Settings in Tamil">
+</p>
+<p align="center">
+  <img src="docs/screenshots/web-inbox.png" width="760" alt="The Gmail-style web inbox">
+</p>
+<p align="center"><sub>Onboarding and Tamil settings on a real Android phone (the APK), a
+chat between the demo users, and the web inbox on a laptop.</sub></p>
 
 ## Quick start
 

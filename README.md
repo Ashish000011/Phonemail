@@ -27,6 +27,11 @@ Built by Ashish Bharti for the AlphaStack 7-Day Buildathon, NIT Trichy.
 <p align="center"><sub>Onboarding and settings on a real Android phone (the APK), a chat
 between the demo users, and the web inbox on a laptop.</sub></p>
 
+▶ **[Watch the 90-second walkthrough on a real phone](docs/demo/phonemail-walkthrough.mp4)**:
+the Android app from language choice to chats, with the sign-in code read
+from the SMS automatically, contacts, settings in three languages, devices
+and log out. Private numbers are blurred.
+
 ## Quick start
 
 You need Docker (Docker Desktop on Windows or macOS). Nothing else, and no

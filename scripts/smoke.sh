@@ -71,8 +71,9 @@ JAR="$(mktemp)"
 trap 'rm -f "$JAR"' EXIT
 api() { curl -fsS -b "$JAR" -c "$JAR" -H 'x-requested-with: phonemail' -H 'content-type: application/json' "$@"; }
 
-# A fresh random Indian mobile number each run.
-PHONE="98$(printf '%08d' $(((RANDOM * 32768 + RANDOM) % 100000000)))"
+# A fresh made-up number each run, in the demo block (+91 9000 xxxxxx) that the
+# server never texts for real, so the code comes back to us instead of a stranger.
+PHONE="9000$((100000 + (RANDOM * 32768 + RANDOM) % 900000))"
 sent=$(api -X POST "$BASE_URL/api/auth/otp/request" -d "{\"phone\":\"$PHONE\"}") ||
   fail "could not request a sign-in code (rate limited? see OTP_IP_LIMIT_PER_HOUR)"
 CODE=$(sed -n 's/.*"demoCode":"\([0-9]\{6\}\)".*/\1/p' <<<"$sent")

@@ -33,6 +33,13 @@ export interface SendSmsResult {
   status: 'sent' | 'simulated';
 }
 
+/**
+ * The made-up numbers of the demo data and the tests (+91 9000 xxxxxx). In
+ * demo mode their texts only ever go to the demo console, so seeding or a test
+ * run can't text a stranger through a real gateway.
+ */
+export const DEMO_NUMBER_PREFIX = '+919000';
+
 // "123456 is your PhoneMail code…" → "•••••• is your PhoneMail code…"
 function maskCodes(body: string): string {
   return body.replace(/\b\d{6}\b/g, '••••••');
@@ -55,9 +62,13 @@ export class SmsSender {
     return this.candidates(purpose).length > 0;
   }
 
-  private candidates(purpose: SmsPurpose): SmsProvider[] {
+  private candidates(purpose: SmsPurpose, to?: string): SmsProvider[] {
+    const demoNumber = this.demoMode && to !== undefined && to.startsWith(DEMO_NUMBER_PREFIX);
     return this.providers.filter(
-      (p) => p.isConfigured() && (purpose !== 'otp' || p.supportsCustomText()),
+      (p) =>
+        p.isConfigured() &&
+        (purpose !== 'otp' || p.supportsCustomText()) &&
+        (!demoNumber || p.name === 'console'),
     );
   }
 
@@ -65,7 +76,7 @@ export class SmsSender {
     const logBody = (text: string) =>
       purpose === 'otp' && !this.demoMode ? maskCodes(text) : text;
 
-    for (const provider of this.candidates(purpose)) {
+    for (const provider of this.candidates(purpose, to)) {
       try {
         const result = await provider.send(to, body, purpose);
         await this.writeLog({

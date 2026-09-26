@@ -74,6 +74,26 @@ describe('SmsSender', () => {
     await expect(sender.send(input)).rejects.toMatchObject({ code: 'SMS_UNAVAILABLE' });
   });
 
+  it('texts to demo numbers stay in the demo console in demo mode', async () => {
+    const smsgate = fakeProvider('smsgate');
+    const consoleProvider = fakeProvider('console');
+    const { sender } = makeSender([smsgate, consoleProvider]);
+    await sender.send({ ...input, to: '+919000000002' });
+    await sender.send({ ...input, to: '+919000123456', purpose: 'otp', body: '123456' });
+    expect(smsgate.sent).toHaveLength(0);
+    expect(consoleProvider.sent).toHaveLength(2);
+    // Real numbers still go through the gateway.
+    await sender.send(input);
+    expect(smsgate.sent).toHaveLength(1);
+  });
+
+  it('demo numbers are ordinary numbers outside demo mode', async () => {
+    const smsgate = fakeProvider('smsgate');
+    const { sender } = makeSender([smsgate, fakeProvider('console')], false);
+    await sender.send({ ...input, to: '+919000000002' });
+    expect(smsgate.sent).toHaveLength(1);
+  });
+
   it('masks codes in the log outside demo mode', async () => {
     const { sender, logs } = makeSender([fakeProvider('smsgate')], false);
     await sender.send({ ...input, purpose: 'otp', body: '123456 is your PhoneMail code' });

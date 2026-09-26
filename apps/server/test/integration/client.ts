@@ -20,9 +20,13 @@ export async function stackIsUp(): Promise<boolean> {
   return up;
 }
 
-/** A random, valid Indian mobile number, so every test run uses fresh accounts. */
+/**
+ * A fresh made-up number in the demo block (9000 1xxxxx to 9000 9xxxxx, clear
+ * of the seed users), so every run gets new accounts and no real phone is
+ * ever texted (the server keeps these in the demo console).
+ */
 export function randomPhone(): string {
-  return `98${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
+  return `9000${100000 + Math.floor(Math.random() * 900000)}`;
 }
 
 export class TestClient {

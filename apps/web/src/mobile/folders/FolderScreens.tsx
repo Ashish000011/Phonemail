@@ -2,12 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, ShieldAlert, Trash2 } from 'lucide-react';
 import { z } from 'zod';
-import { draftSchema, mailboxPageSchema, type MailListItem } from '@phonemail/shared';
+import {
+  conversationItemSchema,
+  draftSchema,
+  mailboxPageSchema,
+  type ConversationItem,
+  type MailListItem,
+} from '@phonemail/shared';
 import { api } from '../../shared/api';
 import { useErrorText } from '../../shared/errors';
 import { chatListTime } from '../../shared/time';
+import { ChatPreview } from '../home/ChatRow';
 import { Avatar } from '../ui/Avatar';
 import { EmptyState, SkeletonRows } from '../ui/bits';
 import { Dialog } from '../ui/Dialog';
@@ -25,12 +32,101 @@ function initialsOf(name: string) {
   return /^\p{L}/u.test(name) ? [...name][0].toUpperCase() : '';
 }
 
-/** Spam and Trash: plain email lists in the chat-row style (docs/spec/07, "Menu"). */
-export function FolderScreen({ folder }: { folder: 'spam' | 'trash' }) {
+/** After a restore: Home, the folders and the menu counts all change. */
+function useRefreshLists() {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ['mailbox'] });
+    void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    void queryClient.invalidateQueries({ queryKey: ['mailbox-counts'] });
+  };
+}
+
+/**
+ * Spam: one row per reported chat, like Home, and "Not spam" brings the whole
+ * chat back (docs/spec/07, "Menu"). Rows don't open: a chat shows no spam mail.
+ */
+export function SpamScreen() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const errorText = useErrorText();
+  const refresh = useRefreshLists();
+
+  const list = useQuery({
+    queryKey: ['mailbox', 'spam-chats'],
+    queryFn: () => api('/conversations/spam', { schema: z.array(conversationItemSchema) }),
+  });
+  const notSpam = useMutation({
+    mutationFn: (chat: ConversationItem) =>
+      api(`/conversations/${chat.id}/not-spam`, { method: 'POST' }),
+    onSuccess: () => {
+      toast(t('folders.movedToChats'));
+      refresh();
+    },
+    onError: (err) => toast(errorText(err)),
+  });
+
+  const chats = list.data ?? [];
+
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <TopBar
+        title={t('menu.spam')}
+        left={
+          <IconButton label={t('common.back')} icon={ArrowLeft} onClick={() => navigate('/m')} />
+        }
+      />
+      <p className="bg-app-bg px-4 py-2 text-[0.8125rem] text-text-muted">
+        {t('folders.spamChatsHint')}
+      </p>
+
+      {list.isPending ? (
+        <SkeletonRows count={4} />
+      ) : chats.length === 0 ? (
+        <EmptyState
+          illustration={<ShieldAlert size={56} className="text-text-muted/40" aria-hidden="true" />}
+          title={t('folders.spamEmpty')}
+        />
+      ) : (
+        <ul>
+          {chats.map((chat) => (
+            <li key={chat.id} className="flex items-center gap-3 border-b border-black/[0.06] pl-4">
+              <Avatar avatar={chat.avatar} />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-3">
+                <span className="flex items-baseline gap-2">
+                  <span className="truncate text-[1.0625rem]">
+                    {chat.kind === 'self' ? t('chat.you') : chat.title}
+                  </span>
+                  <span className="ml-auto shrink-0 text-[0.75rem] text-text-muted">
+                    {chat.lastMessage ? chatListTime(chat.lastMessage.sentAt, i18n.language, t) : ''}
+                  </span>
+                </span>
+                <span className="flex min-w-0 items-center gap-1 text-[0.875rem] text-text-muted">
+                  <ChatPreview chat={chat} />
+                </span>
+              </span>
+              <button
+                type="button"
+                disabled={notSpam.isPending}
+                onClick={() => notSpam.mutate(chat)}
+                className="mr-2 min-h-11 shrink-0 rounded-full px-3 text-[0.8125rem] font-medium text-brand hover:bg-black/5"
+              >
+                {t('folders.notSpam')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Trash: a plain email list in the chat-row style; each email can be restored. */
+export function FolderScreen({ folder }: { folder: 'trash' }) {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const errorText = useErrorText();
+  const refresh = useRefreshLists();
   const [confirmEmpty, setConfirmEmpty] = useState(false);
 
   const list = useQuery({
@@ -38,21 +134,6 @@ export function FolderScreen({ folder }: { folder: 'spam' | 'trash' }) {
     queryFn: () => api(`/mailbox/${folder}`, { schema: mailboxPageSchema }),
   });
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ['mailbox'] });
-    void queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    void queryClient.invalidateQueries({ queryKey: ['mailbox-counts'] });
-  };
-
-  const notSpam = useMutation({
-    mutationFn: (item: MailListItem) =>
-      api('/entries/not-spam', { method: 'POST', body: { ids: item.entryIds } }),
-    onSuccess: () => {
-      toast(t('folders.movedToChats'));
-      refresh();
-    },
-    onError: (err) => toast(errorText(err)),
-  });
   const restore = useMutation({
     mutationFn: (item: MailListItem) =>
       api('/entries/restore', { method: 'POST', body: { ids: item.entryIds } }),
@@ -81,7 +162,7 @@ export function FolderScreen({ folder }: { folder: 'spam' | 'trash' }) {
           <IconButton label={t('common.back')} icon={ArrowLeft} onClick={() => navigate('/m')} />
         }
         right={
-          folder === 'trash' && items.length > 0 ? (
+          items.length > 0 ? (
             <button
               type="button"
               onClick={() => setConfirmEmpty(true)}
@@ -142,10 +223,10 @@ export function FolderScreen({ folder }: { folder: 'spam' | 'trash' }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => (folder === 'spam' ? notSpam.mutate(item) : restore.mutate(item))}
+                  onClick={() => restore.mutate(item)}
                   className="mr-2 min-h-11 shrink-0 rounded-full px-3 text-[0.8125rem] font-medium text-brand hover:bg-black/5"
                 >
-                  {folder === 'spam' ? t('folders.notSpam') : t('folders.restore')}
+                  {t('folders.restore')}
                 </button>
               </li>
             );

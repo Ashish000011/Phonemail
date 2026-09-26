@@ -54,13 +54,7 @@ const routes: RouteObject[] = [
         lazy: async () => ({ Component: (await mobile.onboarding()).Onboarding }),
       },
       { path: 'drafts', lazy: async () => ({ Component: (await mobile.folders()).DraftsScreen }) },
-      {
-        path: 'spam',
-        lazy: async () => {
-          const { FolderScreen } = await mobile.folders();
-          return { element: <FolderScreen folder="spam" /> };
-        },
-      },
+      { path: 'spam', lazy: async () => ({ Component: (await mobile.folders()).SpamScreen }) },
       {
         path: 'trash',
         lazy: async () => {

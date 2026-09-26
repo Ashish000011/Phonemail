@@ -275,3 +275,9 @@ why. The AI assistant adds to this list during the build; the README links here.
     chat you had replied in vanished and then came back on the next refresh.
     "Not spam" brings your replies in those chats back with the sender's
     mail. Found on the real phone; covered by an integration test.
+86. The phone's Spam screen lists reported chats, one row each like Home,
+    with one "Not spam" that brings the whole chat back and unblocks its
+    people (GET /api/conversations/spam, POST /api/conversations/:id/not-spam).
+    Listing every email (your own replies included) looked like a broken
+    chat. Trash stays an email list, where restoring one email makes sense.
+    The web client keeps Gmail's per-thread Spam folder.

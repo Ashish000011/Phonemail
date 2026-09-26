@@ -16,12 +16,14 @@ import {
   listBlockedSenders,
   listChatMessages,
   listConversations,
+  listSpamConversations,
   markConversationRead,
   patchConversation,
   resolveConversation,
   spamConversation,
   trashConversation,
   unblockSender,
+  unspamConversation,
 } from './service.js';
 
 /** The WhatsApp-style chat API for the mobile client (docs/spec/05-conversations.md). */
@@ -165,6 +167,36 @@ export async function conversationRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       await spamConversation(currentAuth(request).userId, request.params.id);
+      return reply.status(204).send(null);
+    },
+  );
+
+  app.get(
+    '/api/conversations/spam',
+    {
+      ...auth,
+      schema: {
+        tags,
+        summary: 'Chats reported as spam, one row each (Spam screen on the phone)',
+        response: { 200: z.array(conversationItemSchema) },
+      },
+    },
+    async (request) => listSpamConversations(currentAuth(request).userId),
+  );
+
+  app.post(
+    '/api/conversations/:id/not-spam',
+    {
+      ...auth,
+      schema: {
+        tags,
+        summary: 'Not spam for the whole chat: its mail comes back, its people are unblocked',
+        params: idParams,
+        response: { 204: z.null() },
+      },
+    },
+    async (request, reply) => {
+      await unspamConversation(currentAuth(request).userId, request.params.id);
       return reply.status(204).send(null);
     },
   );

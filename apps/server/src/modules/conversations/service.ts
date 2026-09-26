@@ -42,6 +42,8 @@ import {
 const PAGE_SIZE = 30;
 const MESSAGES_PAGE = 40;
 const VISIBLE: Prisma.MailboxEntryWhereInput = { trashedAt: null, isSpam: false };
+/** Mail of reported chats, for the phone's Spam screen. */
+const IN_SPAM: Prisma.MailboxEntryWhereInput = { trashedAt: null, isSpam: true };
 
 type ConversationWithPeople = Conversation & { participants: ConversationParticipant[] };
 
@@ -79,16 +81,18 @@ function senderKey(message: { fromUserId: string | null; fromAddress: string }):
 }
 
 /** Turns chats into list items (title, avatar, last message, unread count). */
+/** Chat rows. `entries` picks which mail counts: visible mail for Home, spam for Spam. */
 export async function presentConversations(
   ownerId: string,
   conversations: ConversationWithPeople[],
+  entries: Prisma.MailboxEntryWhereInput = VISIBLE,
 ): Promise<ConversationItem[]> {
   if (conversations.length === 0) return [];
   const ids = conversations.map((c) => c.id);
 
   const [lastEntries, unread] = await Promise.all([
     db.mailboxEntry.findMany({
-      where: { userId: ownerId, conversationId: { in: ids }, ...VISIBLE },
+      where: { userId: ownerId, conversationId: { in: ids }, ...entries },
       orderBy: { createdAt: 'desc' },
       distinct: ['conversationId'],
       include: {
@@ -115,7 +119,7 @@ export async function presentConversations(
         conversationId: { in: ids },
         direction: 'incoming',
         isRead: false,
-        ...VISIBLE,
+        ...entries,
       },
       _count: { _all: true },
     }),
@@ -601,6 +605,37 @@ export async function spamConversation(ownerId: string, id: string): Promise<voi
   await publishEvent({
     userIds: [ownerId],
     type: 'conversation.removed',
+    payload: { conversationId: id },
+  });
+}
+
+/** The phone's Spam screen: one row per chat with mail in Spam, newest first. */
+export async function listSpamConversations(ownerId: string): Promise<ConversationItem[]> {
+  const conversations = await db.conversation.findMany({
+    where: { ownerId, entries: { some: { userId: ownerId, ...IN_SPAM } } },
+    orderBy: [{ lastMessageAt: 'desc' }, { id: 'desc' }],
+    take: PAGE_SIZE,
+    include: { participants: true },
+  });
+  return presentConversations(ownerId, conversations, IN_SPAM);
+}
+
+/** "Not spam" for a whole chat: all its mail comes back and its people are unblocked. */
+export async function unspamConversation(ownerId: string, id: string): Promise<void> {
+  const conversation = await ownedConversation(ownerId, id);
+  await db.mailboxEntry.updateMany({
+    where: { userId: ownerId, conversationId: id, isSpam: true },
+    data: { isSpam: false },
+  });
+  await db.blockedSender.deleteMany({
+    where: {
+      userId: ownerId,
+      identityKey: { in: conversation.participants.map((p) => p.identityKey) },
+    },
+  });
+  await publishEvent({
+    userIds: [ownerId],
+    type: 'conversation.updated',
     payload: { conversationId: id },
   });
 }

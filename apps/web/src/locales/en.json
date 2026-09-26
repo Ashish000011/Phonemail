@@ -203,6 +203,7 @@
     "trashEmptied": "Trash emptied",
     "emptyTrash": "Empty trash",
     "spamHint": "Emails in Spam don't show up in your chats.",
+    "spamChatsHint": "Chats you reported as spam. Tap “Not spam” to bring a chat back with all its emails.",
     "trashHint": "Emails in Trash are deleted for good after 30 days.",
     "spamEmpty": "No spam",
     "trashEmpty": "Trash is empty",

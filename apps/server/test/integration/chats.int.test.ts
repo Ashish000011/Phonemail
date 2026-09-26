@@ -142,6 +142,9 @@ describe.skipIf(!up)('chats, receipts and SMS alerts (against the running stack)
 
     const chats = await b.request<ConversationPage>('GET', '/api/conversations');
     expect(chats.data.items.some((c) => c.id === chat.id)).toBe(false);
+    // The phone's Spam screen shows the chat once, not email by email.
+    const spamChats = await b.request<ConversationPage['items']>('GET', '/api/conversations/spam');
+    expect(spamChats.data.filter((c) => c.id === chat.id)).toHaveLength(1);
     const spam = await b.request<MailboxPage>('GET', '/api/mailbox/spam');
     const thread = spam.data.items.find((i) => i.subject.endsWith(subject));
     expect(thread?.count).toBe(2);
@@ -156,6 +159,31 @@ describe.skipIf(!up)('chats, receipts and SMS alerts (against the running stack)
       `/api/conversations/${chat.id}/messages`,
     );
     expect(messages.data.items).toHaveLength(2);
+  });
+
+  it('Not spam on a whole chat brings back all its mail and unblocks its people', async () => {
+    const sender = await TestClient.signIn('web');
+    const first = await send(sender, { to: [b.address], subject: `Oops ${Date.now()}` });
+    const chat = await eventually(async () => {
+      const { data } = await b.request<ConversationPage>('GET', '/api/conversations');
+      return data.items.find((c) => c.participants.some((p) => p.address === sender.address));
+    });
+    await send(b, { conversationId: chat.id, replyToMessageId: first.messageId, body: 'hi' });
+    await b.request('POST', `/api/conversations/${chat.id}/spam`);
+
+    const restore = await b.request('POST', `/api/conversations/${chat.id}/not-spam`);
+    expect(restore.status).toBe(204);
+    const chats = await b.request<ConversationPage>('GET', '/api/conversations');
+    expect(chats.data.items.some((c) => c.id === chat.id)).toBe(true);
+    const messages = await b.request<ChatMessagesPage>(
+      'GET',
+      `/api/conversations/${chat.id}/messages`,
+    );
+    expect(messages.data.items).toHaveLength(2);
+    const blocked = await b.request<{ address: string }[]>('GET', '/api/me/blocked');
+    expect(blocked.data.some((s) => s.address === sender.address)).toBe(false);
+    const spamChats = await b.request<ConversationPage['items']>('GET', '/api/conversations/spam');
+    expect(spamChats.data.some((c) => c.id === chat.id)).toBe(false);
   });
 
   it('report spam blocks the sender; Settings lists them and can unblock', async () => {

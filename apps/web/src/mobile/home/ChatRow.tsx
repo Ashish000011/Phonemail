@@ -12,7 +12,7 @@ function firstName(name: string): string {
 }
 
 /** What the second line says: a draft, or the last email ("Subject · snippet"). */
-function Preview({ chat }: { chat: ConversationItem }) {
+export function ChatPreview({ chat }: { chat: ConversationItem }) {
   const { t } = useTranslation();
   if (chat.chatDraft) {
     return (
@@ -109,7 +109,7 @@ export const ChatRow = memo(function ChatRow({
           </span>
           <span className="flex items-center gap-1.5 text-[0.875rem] text-text-muted">
             <span className="flex min-w-0 flex-1 items-center gap-1">
-              <Preview chat={chat} />
+              <ChatPreview chat={chat} />
             </span>
             {chat.isFavorite && (
               <Star

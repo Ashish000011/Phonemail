@@ -32,6 +32,11 @@ the Android app from language choice to chats, with the sign-in code read
 from the SMS automatically, contacts, settings in three languages, devices
 and log out. Private numbers are blurred.
 
+▶ **[Watch the clone-and-run demo on a laptop (7 minutes)](docs/demo/phonemail-clone-and-run.mp4)**:
+a fresh `git clone` and `docker compose up -d`, then Arjun messages Priya
+from the phone client, Priya signs in and replies, and the same mailbox opens
+in the Gmail-style web client. Browser history is blurred.
+
 📊 **[Project presentation (PDF, 12 slides)](docs/presentation/PhoneMail-presentation.pdf)**:
 the idea, the phone and laptop apps, SMS, how it is built, its rules, security
 and testing. It opens right here on GitHub.

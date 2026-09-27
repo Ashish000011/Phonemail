@@ -1,6 +1,7 @@
 {
   "name": "phonemail",
   "private": true,
+  "license": "MIT",
   "description": "Email where your phone number is your address.",
   "type": "module",
   "workspaces": [

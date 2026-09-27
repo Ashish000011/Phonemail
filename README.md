@@ -32,6 +32,10 @@ the Android app from language choice to chats, with the sign-in code read
 from the SMS automatically, contacts, settings in three languages, devices
 and log out. Private numbers are blurred.
 
+📊 **[Project presentation (PDF, 12 slides)](docs/presentation/PhoneMail-presentation.pdf)**:
+the idea, the phone and laptop apps, SMS, how it is built, its rules, security
+and testing. It opens right here on GitHub.
+
 ## Quick start
 
 You need Docker (Docker Desktop on Windows or macOS) and Git. Nothing else,
@@ -326,3 +330,7 @@ Local development without Docker for the web app: `npm run dev -w apps/web`
 - [docs/CHECKLIST.md](docs/CHECKLIST.md): the final acceptance checklist and how each item was verified
 - [docs/LEARNING.md](docs/LEARNING.md): plain-English notes on how it all works
 - [docs/spec/](docs/spec/): the full specification
+
+## License
+
+MIT: see [LICENSE](LICENSE).

@@ -34,10 +34,12 @@ and log out. Private numbers are blurred.
 
 ## Quick start
 
-You need Docker (Docker Desktop on Windows or macOS). Nothing else, and no
-`.env`: it starts in demo mode with safe defaults.
+You need Docker (Docker Desktop on Windows or macOS) and Git. Nothing else,
+and no `.env`: it starts in demo mode with safe defaults.
 
 ```bash
+git clone https://github.com/Ashish000011/Phonemail.git
+cd Phonemail
 docker compose up -d
 ```
 
@@ -101,7 +103,7 @@ With the simulators, no phone needed (for real calls and texts, see
 | Requirement (task document) | Where |
 |---|---|
 | Sign up by calling and pressing 1 (IVR) | Twilio number or demo console "Simulate call"; `apps/server/src/modules/telephony` |
-| Sign up by SMS | Text JOIN to the Twilio number or the SMSGate phone, or "Simulate SMS" |
+| Sign up by SMS | Text JOIN to the SMSGate phone (or a paid Twilio number), or "Simulate SMS" |
 | Registration portal: phone + OTP, fields reset for the next person | `/register` |
 | Web client sign-in: one Next button, Terms line above it | `/login` |
 | Mobile onboarding: language → terms → number (pre-filled, editable) → OTP (auto-detected) | `/m/welcome` |
@@ -122,6 +124,8 @@ With the simulators, no phone needed (for real calls and texts, see
 | SMS alerts only for people without the mobile app | Demo console feed; `modules/notifications` |
 | Real SMTP server; mail between users; outside mail comes in over SMTP | `smtp` container, port 2525 |
 | Everything in Docker, `docker compose up -d` | `docker-compose.yml` |
+| Bonus: custom SMS text through a free provider | SMSGate (an Android phone as the gateway): codes, alerts with the exact wording, JOIN replies |
+| Bonus: an APK with automatic OTP detection | The Android app ([docs/APK.md](docs/APK.md)); Chrome reads the code from the SMS |
 
 Also: Hindi and Tamil everywhere, live updates and blue ticks, drafts that
 save themselves, stars, spam and blocked senders, attachments, aliases,
@@ -215,22 +219,23 @@ that is set up in `.env` (or name one: `./scripts/public-url.sh ngrok`):
 ### 2. Twilio (phone call sign-up, SMS alerts)
 
 1. Sign up for a free trial at twilio.com and verify your own mobile number
-   (trial accounts can only call and text verified numbers, up to 5).
-2. Get a phone number. Choose a **US local number**, not toll-free: US
-   toll-free numbers can't be dialled from India.
-3. Put these in `.env` (copy `.env.example`):
-   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`.
-4. Run `./scripts/public-url.sh` again: it sets the number's call and SMS
-   webhooks for you. (By hand: in the Twilio console, set "A call comes in" to
-   `<public address>/webhooks/twilio/voice` and "A message comes in" to
-   `<public address>/webhooks/twilio/sms`, both HTTP POST.)
-5. Call the number and press 1, or use **Call me** in the demo console to
-   have Twilio call you (no international call charges). Trial calls start
-   with a short Twilio notice.
+   (trial accounts can only call and text verified numbers).
+2. Put these in `.env` (copy `.env.example`): `TWILIO_ACCOUNT_SID`,
+   `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` (the number Twilio gives you)
+   and `TWILIO_TRIAL=true`.
+3. Run `./scripts/public-url.sh` again.
+4. In the demo console, use **Call me**: Twilio calls your verified phone and
+   plays the menu. Press 1 and the account is created. Trial calls start with
+   a short Twilio notice. To let someone else try, add their number under
+   Phone Numbers → Verified Caller IDs in the Twilio console.
 
-Trial limits: Twilio's trial can only send its ready-made SMS templates, so
-alerts arrive as a Twilio template (the organizers allow this) and sign-in
-codes don't travel through Twilio. That's what SMSGate is for.
+Free-trial limits (DECISIONS 77): the trial lends a shared number that can't
+take incoming calls or texts, so people can't call *it*; "Call me" shows the
+same IVR instead. The trial also sends only Twilio's ready-made SMS
+templates, so alerts arrive as a template (the organizers allow this) and
+sign-in codes don't travel through Twilio. That's what SMSGate is for. On a
+paid account with your own number, `public-url.sh` also points the number's
+call and SMS webhooks at PhoneMail, and callers can dial in directly.
 
 ### 3. SMSGate (your Android phone as the SMS gateway: real codes, exact alert text)
 
@@ -277,18 +282,18 @@ docker compose exec api node dist/scripts/smsgate-webhook.js unregister
 apps/server       API, SMTP server and worker (one codebase, three entry points)
 apps/web          the React app: /m (mobile), /mail + /login (web), /register, /demo
 packages/shared   zod schemas and types used by both
-scripts/          smoke test, contrast check, public URL helper
-docs/             architecture, decisions, security, spec, learning notes
+scripts/          smoke test, contrast check, public URL helper, demo reset
+docs/             architecture, decisions, security, spec, learning notes, demo video
 ```
 
 ## Tests and CI
 
 ```bash
 npm install
-npm run typecheck && npm run lint && npm test   # 201 server + 22 web unit tests
+npm run typecheck && npm run lint && npm test   # 208 server + 22 web unit tests
 node scripts/check-contrast.mjs                  # WCAG contrast of every colour pair
-npm run test:integration -w apps/server          # against a running stack
-./scripts/smoke.sh                               # against a running stack
+npm run test:integration -w apps/server          # 21 tests against a running stack
+./scripts/smoke.sh                               # 14 checks against a running stack
 ```
 
 GitHub Actions runs the checks above, `npm audit`, and then starts the full
@@ -314,7 +319,9 @@ Local development without Docker for the web app: `npm run dev -w apps/web`
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): containers and flows, with diagrams
-- [docs/DECISIONS.md](docs/DECISIONS.md): how unclear requirements were resolved
+- [docs/DECISIONS.md](docs/DECISIONS.md): 87 decisions on unclear requirements, each with its reason
+- [docs/DEMO-DAY.md](docs/DEMO-DAY.md): the demo with real phones, and what to do when something fails
+- [docs/APK.md](docs/APK.md): the Android app, how it was built and installed
 - [docs/SECURITY.md](docs/SECURITY.md): every security measure and its limits
 - [docs/CHECKLIST.md](docs/CHECKLIST.md): the final acceptance checklist and how each item was verified
 - [docs/LEARNING.md](docs/LEARNING.md): plain-English notes on how it all works

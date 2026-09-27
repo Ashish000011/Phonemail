@@ -239,7 +239,7 @@
   "portal": {
     "subtitle": "आपका फ़ोन नंबर ही आपका ईमेल पता बन जाता है।",
     "phoneLabel": "फ़ोन नंबर",
-    "phonePlaceholder": "98765 43210",
+    "phonePlaceholder": "90000 12345",
     "phoneHint": "भारत से बाहर हैं? + और अपना देश कोड लगाकर शुरू करें।",
     "addressPreview": "आपका पता: {{address}}",
     "codeLabel": "वन-टाइम कोड",

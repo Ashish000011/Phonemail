@@ -404,7 +404,7 @@ function PhoneSimulatorPanel() {
             <input
               value={callPhone}
               onChange={(e) => setCallPhone(e.target.value)}
-              placeholder="98765 43210"
+              placeholder="90000 12345"
               inputMode="tel"
               className={fieldClass}
             />
@@ -466,7 +466,7 @@ function PhoneSimulatorPanel() {
             <input
               value={smsPhone}
               onChange={(e) => setSmsPhone(e.target.value)}
-              placeholder="98765 43210"
+              placeholder="90000 12345"
               inputMode="tel"
               className={fieldClass}
             />

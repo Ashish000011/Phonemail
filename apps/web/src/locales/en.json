@@ -239,7 +239,7 @@
   "portal": {
     "subtitle": "Your phone number becomes your email address.",
     "phoneLabel": "Phone number",
-    "phonePlaceholder": "98765 43210",
+    "phonePlaceholder": "90000 12345",
     "phoneHint": "Outside India? Start with + and your country code.",
     "addressPreview": "Your address: {{address}}",
     "codeLabel": "One-time code",

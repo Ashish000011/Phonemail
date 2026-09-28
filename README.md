@@ -46,6 +46,11 @@ and testing. It opens right here on GitHub.
 You need Docker (Docker Desktop on Windows or macOS) and Git. Nothing else,
 and no `.env`: it starts in demo mode with safe defaults.
 
+**Evaluators:** if you were given a `.env` file for this project, put it in the
+repository root, next to `docker-compose.yml`, before `docker compose up -d`.
+It is the only place settings and keys are read from; no key is written in
+the code.
+
 ```bash
 git clone https://github.com/Ashish000011/Phonemail.git
 cd Phonemail
@@ -165,8 +170,11 @@ the web groups the same entries into threads and folders. More diagrams,
 including sending, IVR sign-up and the SMS rule:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Design decisions
+## Approach and design decisions
 
+The build followed a written plan: a spec split by area in
+[docs/spec](docs/spec), then one phase at a time
+([docs/PHASES.md](docs/PHASES.md)), each ending with tests and a commit.
 Every place the task was ambiguous, and what we chose, is written down in
 [docs/DECISIONS.md](docs/DECISIONS.md). A few that shape the product:
 

@@ -74,7 +74,7 @@ sequenceDiagram
   O->>S: RCPT TO 9876543210@phonemail.com
   S->>S: local domain and a real user? (otherwise 550, no open relay)
   O->>S: DATA (up to 25 MB)
-  S->>DB: same ingest pipeline; spam score; blocked senders go to Spam
+  S->>DB: same ingest pipeline, spam score, blocked senders go to Spam
 ```
 
 ## Sign-up by phone call (IVR)
